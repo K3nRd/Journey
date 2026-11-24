@@ -1,4 +1,5 @@
 import { addDays, daysBetween, dateKey, parseKey } from "./date";
+import type { Goal } from "./types";
 
 export interface Entry {
   date: string;
@@ -42,8 +43,10 @@ export function weeklyRate(entries: Entry[], days = 21): number | null {
 }
 
 export function projection(current: number, goal: number, rate: number | null): string | null {
-  if (rate === null || rate >= -0.05 || current <= goal) return null;
-  const weeks = (current - goal) / -rate;
+  if (rate === null || Math.abs(current - goal) < 0.5) return null;
+  const down = goal < current;
+  if ((down && rate >= -0.05) || (!down && rate <= 0.05)) return null;
+  const weeks = Math.abs(current - goal) / Math.abs(rate);
   if (weeks > 200) return null;
   return addDays(dateKey(), Math.round(weeks * 7));
 }
@@ -53,19 +56,29 @@ export interface CalorieAdvice {
   message: string;
 }
 
-/** Revisión cada 2 semanas: meta 0.5–1 lb por semana. */
-export function calorieAdvice(rate: number | null): CalorieAdvice | null {
+/** Revisión cada 2 semanas según el objetivo. */
+export function calorieAdvice(rate: number | null, goal: Goal = "perder", weightLb = 200): CalorieAdvice | null {
   if (rate === null) return null;
-  const loss = -rate;
-  if (loss > 1.5)
-    return { delta: 150, message: `Estás bajando ${loss.toFixed(1)} lb/semana: es demasiado rápido y puedes perder músculo. Sube 150 kcal.` };
-  if (loss > 1.2)
-    return { delta: 100, message: `Bajas ${loss.toFixed(1)} lb/semana, algo rápido. Sube 100 kcal para proteger tu músculo.` };
-  if (loss < 0.25)
-    return { delta: -150, message: `Bajas solo ${Math.max(0, loss).toFixed(1)} lb/semana. Baja 150 kcal (o camina 2,000 pasos más al día).` };
-  if (loss < 0.45)
-    return { delta: -100, message: `Bajas ${loss.toFixed(1)} lb/semana, un poco lento. Baja 100 kcal.` };
-  return { delta: 0, message: `Bajas ${loss.toFixed(1)} lb/semana: justo en el rango ideal (0.5–1.2). No cambies nada.` };
+  const pct = (rate / weightLb) * 100; // % del peso por semana (negativo = bajando)
+  const f = (n: number) => Math.abs(n).toFixed(1);
+  if (goal === "perder") {
+    const loss = -pct;
+    if (loss > 1.3) return { delta: 150, message: `Bajas ${f(rate)} lb/semana (${f(pct)} % de tu peso): demasiado rápido, puedes perder músculo. Sube 150 kcal.` };
+    if (loss > 1.0) return { delta: 100, message: `Bajas ${f(rate)} lb/semana, un poco rápido. Sube 100 kcal para proteger tu músculo.` };
+    if (loss < 0.2) return { delta: -150, message: `Bajas solo ${f(Math.min(0, rate))} lb/semana. Baja 150 kcal (o camina 2,000 pasos más al día).` };
+    if (loss < 0.4) return { delta: -100, message: `Bajas ${f(rate)} lb/semana, algo lento. Baja 100 kcal.` };
+    return { delta: 0, message: `Bajas ${f(rate)} lb/semana (${f(pct)} % de tu peso): justo en el rango ideal. No cambies nada.` };
+  }
+  if (goal === "ganar") {
+    if (pct > 0.75) return { delta: -150, message: `Subes ${f(rate)} lb/semana: muy rápido, será más grasa que músculo. Baja 150 kcal.` };
+    if (pct > 0.5) return { delta: -100, message: `Subes ${f(rate)} lb/semana, algo rápido. Baja 100 kcal.` };
+    if (pct < 0.1) return { delta: 150, message: `Casi no estás subiendo (${f(Math.max(0, rate))} lb/semana). Sube 150 kcal: añade una merienda o más arroz/avena.` };
+    if (pct < 0.2) return { delta: 100, message: `Subes ${f(rate)} lb/semana, un poco lento. Sube 100 kcal.` };
+    return { delta: 0, message: `Subes ${f(rate)} lb/semana: ritmo ideal para ganar músculo. No cambies nada.` };
+  }
+  if (pct < -0.3) return { delta: 100, message: `Estás bajando ${f(rate)} lb/semana. Para mantenerte, sube 100 kcal.` };
+  if (pct > 0.3) return { delta: -100, message: `Estás subiendo ${f(rate)} lb/semana. Para mantenerte, baja 100 kcal.` };
+  return { delta: 0, message: "Tu peso está estable: tus calorías están bien." };
 }
 
 /** Racha con margen: un día fallado no rompe la racha si los dos anteriores se cumplieron. */
@@ -95,6 +108,7 @@ export interface Achievement {
 }
 
 export interface AchievementInput {
+  goal?: Goal;
   startWeight: number;
   currentTrend: number | null;
   goalWeight: number;
@@ -108,9 +122,11 @@ export interface AchievementInput {
 }
 
 export function achievements(i: AchievementInput): (Achievement & { done: boolean })[] {
-  const lost = i.currentTrend !== null ? i.startWeight - i.currentTrend : 0;
+  const goal = i.goal ?? "perder";
+  const dir = goal === "ganar" ? -1 : 1;
+  const lost = i.currentTrend !== null ? (i.startWeight - i.currentTrend) * dir : 0; // avance hacia la meta
   const waistLost = i.startWaist && i.currentWaist ? i.startWaist - i.currentWaist : 0;
-  const totalToLose = i.startWeight - i.goalWeight;
+  const totalToLose = Math.abs(i.startWeight - i.goalWeight);
   const list: (Achievement & { done: boolean })[] = [
     { id: "w1", emoji: "🏁", title: "Primer entrenamiento", desc: "Completaste tu primera sesión.", done: i.workouts >= 1 },
     { id: "w10", emoji: "💪", title: "10 entrenamientos", desc: "Ya es un hábito.", done: i.workouts >= 10 },
@@ -118,11 +134,25 @@ export function achievements(i: AchievementInput): (Achievement & { done: boolea
     { id: "w50", emoji: "🏆", title: "50 entrenamientos", desc: "Disciplina de verdad.", done: i.workouts >= 50 },
     { id: "w100", emoji: "👑", title: "100 entrenamientos", desc: "Estilo de vida.", done: i.workouts >= 100 },
   ];
-  for (const lb of [5, 10, 15, 20, 25, 30]) {
-    if (lb > totalToLose + 0.01 && lb !== 5) continue;
-    list.push({ id: `lb${lb}`, emoji: lb >= 20 ? "🌟" : "📉", title: `−${lb} lb`, desc: `Tu tendencia bajó ${lb} libras.`, done: lost >= lb });
+  if (goal !== "mantener") {
+    for (const lb of [5, 10, 15, 20, 25, 30]) {
+      if (lb > totalToLose + 0.01 && lb !== 5) continue;
+      list.push({
+        id: `lb${lb}`,
+        emoji: lb >= 20 ? "🌟" : goal === "ganar" ? "📈" : "📉",
+        title: `${goal === "ganar" ? "+" : "−"}${lb} lb`,
+        desc: `Tu tendencia ${goal === "ganar" ? "subió" : "bajó"} ${lb} libras.`,
+        done: lost >= lb,
+      });
+    }
+    list.push({
+      id: "goal",
+      emoji: "🎯",
+      title: "¡Meta alcanzada!",
+      desc: `Llegaste a ${i.goalWeight} lb.`,
+      done: i.currentTrend !== null && (goal === "ganar" ? i.currentTrend >= i.goalWeight : i.currentTrend <= i.goalWeight),
+    });
   }
-  list.push({ id: "goal", emoji: "🎯", title: "¡Meta alcanzada!", desc: `Llegaste a ${i.goalWeight} lb.`, done: i.currentTrend !== null && i.currentTrend <= i.goalWeight });
   for (const inch of [1, 2, 4]) {
     list.push({ id: `in${inch}`, emoji: "📏", title: `−${inch}" de cintura`, desc: `Tu cintura bajó ${inch} pulgada${inch > 1 ? "s" : ""}.`, done: waistLost >= inch });
   }

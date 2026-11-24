@@ -1,10 +1,11 @@
-import type { Profile, TimelineItem } from "./types";
+import type { MealSlot, Profile, TimelineItem } from "./types";
+import { goalOf, mealsPerDay, slotLabel, slotsFor } from "./meals";
 import { fromMin, toMin, daysBetween, dateKey, parseKey } from "./date";
 import { sessionForDate } from "./workout";
 
 export const REMINDER_KINDS: { id: string; label: string; desc: string }[] = [
   { id: "habitos", label: "Hábitos", desc: "Despertar, agua, organizar, desconectar" },
-  { id: "comidas", label: "Comidas", desc: "Primera comida, merienda y cena" },
+  { id: "comidas", label: "Comidas", desc: "Cada comida de tu plan, a su hora" },
   { id: "gym", label: "Gimnasio", desc: "30 min antes de entrenar" },
   { id: "pausas", label: "Pausas activas", desc: "Levantarte cada 2 horas mientras trabajas" },
   { id: "caminar", label: "Caminata", desc: "Tu caminata diaria" },
@@ -124,11 +125,26 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     });
   }
 
+  // ── Horario de comidas (según cuántas haga, su objetivo y su día) ──
+  const count = mealsPerDay(p);
+  const goal = goalOf(p);
+  const slots = slotsFor(count);
+  const r15 = (m: number) => Math.round(m / 15) * 15;
   const comida1 = Math.min(wake + 45, isWork ? Math.max(wake + 20, ws - 10) : wake + 60);
+  const almuerzo = slots.includes("almuerzo") ? r15(isWork ? (ws + we) / 2 : comida1 + 240) : null;
+  const cenaMeal = isGym ? gymEnd + 40 : Math.min(sleep - 150, Math.max(toMin("19:00"), comida1 + 360));
+  const meriendaMin = isGym ? gym - 75 : r15(((almuerzo ?? comida1) + cenaMeal) / 2);
+  const snackMin = slots.includes("snack")
+    ? goal === "ganar"
+      ? Math.max(cenaMeal + 75, sleep - 90)
+      : r15((comida1 + (almuerzo ?? meriendaMin)) / 2)
+    : null;
+  const label = (slot: MealSlot) => slotLabel(slot, count, isGym, goal);
+
   add({
     id: "comida1",
     min: comida1,
-    title: "Primera comida",
+    title: label("comida1"),
     kind: "meal",
     meal: "comida1",
     icon: "Utensils",
@@ -153,12 +169,13 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
       remind: false,
       reminderKind: "habitos",
     } as TimelineItem & { min: number });
-    walkMin = ws + Math.round((we - ws) / 2 / 30) * 30;
+    // Caminar después de almorzar ayuda a controlar el azúcar en sangre
+    walkMin = almuerzo !== null ? almuerzo + 30 : ws + Math.round((we - ws) / 2 / 30) * 30;
     if (h.pausas) {
       let n = 1;
       // La evidencia favorece moverse cada 30–60 min; avisamos cada 90 para no saturar
       for (let t = ws + 90; t < we - 30; t += 90) {
-        if (Math.abs(t - walkMin) < 45) continue;
+        if (Math.abs(t - walkMin) < 45 || (almuerzo !== null && Math.abs(t - almuerzo) < 40)) continue;
         add({
           id: `pausa-${n++}`,
           min: t,
@@ -180,7 +197,7 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     add({
       id: "caminar",
       min: walkMin,
-      title: isWork ? "Caminar 10–15 min" : "Caminar 30 min",
+      title: isWork ? (almuerzo !== null ? "Caminar 10–15 min tras almorzar" : "Caminar 10–15 min") : "Caminar 30 min",
       desc: `Meta: ${p.stepsGoal.toLocaleString("es-DO")} pasos en el día.`,
       kind: "walk",
       icon: "Footprints",
@@ -190,12 +207,41 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     });
   }
 
+  if (almuerzo !== null) {
+    add({
+      id: "almuerzo",
+      min: almuerzo,
+      title: label("almuerzo"),
+      kind: "meal",
+      meal: "almuerzo",
+      icon: "Utensils",
+      href: "/nutricion",
+      checkable: true,
+      remind: true,
+      reminderKind: "comidas",
+    });
+  }
+  if (snackMin !== null) {
+    add({
+      id: "snack",
+      min: snackMin,
+      title: label("snack"),
+      kind: "meal",
+      meal: "snack",
+      icon: "Apple",
+      href: "/nutricion",
+      checkable: true,
+      remind: true,
+      reminderKind: "comidas",
+    });
+  }
+
   // Merienda, gimnasio y cena
-  const merienda = isGym ? gym - 75 : Math.round((comida1 + (sleep - 180)) / 2);
+  const merienda = meriendaMin;
   add({
     id: "merienda",
     min: merienda,
-    title: isGym ? "Merienda pre-entreno" : "Merienda",
+    title: label("merienda"),
     kind: "meal",
     meal: "merienda",
     icon: "Apple",
@@ -264,11 +310,11 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     });
   }
 
-  const cena = isGym ? gymEnd + 40 : Math.min(sleep - 180, Math.max(merienda + 150, toMin("19:00")));
+  const cena = cenaMeal;
   add({
     id: "cena",
     min: cena,
-    title: isGym ? "Cena post-entreno" : "Cena",
+    title: label("cena"),
     kind: "meal",
     meal: "cena",
     icon: "Soup",
@@ -416,5 +462,5 @@ export function buildWeeklyReminders(p: Profile, overrides: Record<string, strin
 }
 
 function emojiFor(id: string) {
-  return id === "comida1" ? "🍳" : id === "merienda" ? "🍌" : "🍗";
+  return id === "comida1" ? "🍳" : id === "merienda" || id === "snack" ? "🍌" : "🍗";
 }

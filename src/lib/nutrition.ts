@@ -1,8 +1,9 @@
 import { FOOD, type Food } from "@/data/foods";
 import { RECIPE, RECIPES, type Recipe } from "@/data/recipes";
-import { BASE_MENU } from "@/data/mealplan";
+import { RECIPE_POOL, baseRecipeFor } from "@/data/mealplan";
+import { goalOf, mealsPerDay, sharesFor, slotsFor, suggestedMeals } from "./meals";
 import { EXCLUDABLE } from "@/data/foods";
-import type { MealSlot, Profile } from "./types";
+import type { Goal, MealSlot, Profile } from "./types";
 
 export const LB_TO_KG = 0.45359237;
 
@@ -65,18 +66,37 @@ export interface Targets {
   carbs: number;
   tdee: number;
   suggestedKcal: number;
+  goal: Goal;
+  meals: 3 | 4 | 5;
+  suggestedMeals: 3 | 4 | 5;
 }
 
+/**
+ * Calorías y macros según el objetivo:
+ * - Bajar grasa: déficit moderado del 20 % (entre 300 y 750 kcal) → ~0.5–1 % del peso por semana.
+ * - Mantener: el gasto estimado.
+ * - Ganar músculo: superávit del 10 % → ~0.25–0.5 % del peso por semana.
+ * Proteína 1.6–1.8 g/kg (ISSN: 1.4–2.0 g/kg con ejercicio).
+ */
 export function targets(p: Profile, currentWeightLb: number): Targets {
+  const goal = goalOf(p);
   const t = tdee(p, currentWeightLb);
   const floor = p.sex === "m" ? 1700 : 1400;
-  const suggested = Math.max(floor, Math.round((t - 500) / 50) * 50);
+  let raw: number;
+  if (goal === "perder") raw = t - Math.min(750, Math.max(300, t * 0.2));
+  else if (goal === "ganar") raw = t * 1.1;
+  else raw = t;
+  const suggested = Math.max(floor, Math.round(raw / 50) * 50);
   const kcal = p.calorieTarget ?? suggested;
-  const goalKg = p.goalWeightLb * LB_TO_KG;
-  const protein = Math.round((goalKg * 1.6) / 5) * 5; // mínimo 1.6 g/kg de peso meta (ideal hasta 2 g/kg)
-  const fat = Math.round((kcal * 0.27) / 9);
+
+  // Peso de referencia para la proteína: la meta al bajar (evita cifras enormes con mucho sobrepeso), el actual al mantener o ganar
+  const refLb = goal === "perder" ? p.goalWeightLb || currentWeightLb : currentWeightLb;
+  const perKg = goal === "ganar" ? 1.8 : 1.6;
+  const protein = Math.round((refLb * LB_TO_KG * perKg) / 5) * 5;
+  const fat = Math.round((kcal * (goal === "ganar" ? 0.25 : 0.27)) / 9);
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
-  return { kcal, protein, fat, carbs, tdee: Math.round(t), suggestedKcal: suggested };
+  const sugg = suggestedMeals(kcal, goal, protein);
+  return { kcal, protein, fat, carbs, tdee: Math.round(t), suggestedKcal: suggested, goal, meals: p.mealsPerDay ?? sugg, suggestedMeals: sugg };
 }
 
 // ── Exclusiones ───────────────────────────────────────
@@ -110,28 +130,27 @@ export function menuForDay(
   kcalTarget: number,
 ): PlannedMeal[] {
   const excluded = excludedFoodIds(p);
-  const base = BASE_MENU[weekday];
-  const slots: MealSlot[] = ["comida1", "merienda", "cena"];
-  const chosen = slots.map((slot) => {
-    let id = swaps?.[slot] ?? base[slot];
-    let r = RECIPE[id];
-    if (!r || !recipeAllowed(r, excluded)) {
-      r = RECIPES.find((x) => x.slots.includes(slot) && recipeAllowed(x, excluded)) ?? RECIPE[base[slot]];
-      id = r.id;
-    }
-    return { slot, recipe: r };
-  });
+  const count = mealsPerDay(p);
+  const shares = sharesFor(count, goalOf(p));
+  // ~5 % libre para café, condimentos, una fruta extra…
+  const dayGoal = kcalTarget * 0.95;
+  const used = new Set<string>();
 
-  // Escalamos las porciones para acercarnos a la meta (dejamos ~5% libre para café, condimentos, etc.)
-  const raw = chosen.reduce((acc, c) => addMacros(acc, recipeMacros(c.recipe)), ZERO);
-  const goal = kcalTarget * 0.95;
-  const scale = Math.min(1.35, Math.max(0.75, goal / raw.kcal));
-  const rounded = Math.round(scale * 20) / 20;
-  return chosen.map((c) => ({
-    ...c,
-    scale: rounded,
-    macros: recipeMacros(c.recipe, rounded),
-  }));
+  return slotsFor(count).map((slot) => {
+    const pool = RECIPE_POOL[slot];
+    let r = RECIPE[swaps?.[slot] ?? baseRecipeFor(weekday, slot)];
+    if (!r || !recipeAllowed(r, excluded) || (used.has(r.id) && !swaps?.[slot])) {
+      r =
+        RECIPES.find((x) => x.slots.includes(pool) && recipeAllowed(x, excluded) && !used.has(x.id)) ??
+        RECIPES.find((x) => x.slots.includes(pool) && recipeAllowed(x, excluded)) ??
+        RECIPE[baseRecipeFor(weekday, slot)];
+    }
+    used.add(r.id);
+    // Cada comida se ajusta a la parte de calorías que le toca
+    const base = recipeMacros(r).kcal || 1;
+    const scale = Math.round(Math.min(2.2, Math.max(0.5, (dayGoal * shares[slot]) / base)) * 20) / 20;
+    return { slot, recipe: r, scale, macros: recipeMacros(r, scale) };
+  });
 }
 
 // ── Lista de compras ──────────────────────────────────

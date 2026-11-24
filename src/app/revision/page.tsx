@@ -33,7 +33,7 @@ export default function Revision() {
     return { adherence: avg(comp) ?? 0, wk, expected, ww, waist, water, spent };
   }, [s, days]);
 
-  const advice = calorieAdvice(weeklyRate(series));
+  const advice = calorieAdvice(weeklyRate(series), s.profile.goal ?? "perder", series.at(-1)?.value ?? s.profile.startWeightLb);
 
   return (
     <div>

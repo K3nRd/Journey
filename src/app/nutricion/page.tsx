@@ -8,6 +8,7 @@ import { useDay, useTargets } from "@/lib/hooks";
 import { addDays, dateKey, DAY_SHORT, parseKey, weekStart, fmtDate, fmt12 } from "@/lib/date";
 import { PageHeader, Card, SectionTitle, Bar, cx } from "@/components/ui";
 import { MealCard } from "@/components/MealCard";
+import { MealsPicker } from "@/components/MealsPicker";
 import { toggleItem } from "@/lib/actions";
 
 export default function Nutricion() {
@@ -89,6 +90,10 @@ export default function Nutricion() {
           </p>
         )}
       </Card>
+
+      <div className="mt-4">
+        <MealsPicker label="Comidas al día" />
+      </div>
 
       <SectionTitle>Menú del día</SectionTitle>
       <div className="space-y-3">

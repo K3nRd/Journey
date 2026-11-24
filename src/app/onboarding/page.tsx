@@ -8,13 +8,15 @@ import { Button, Card, Chip, Field, Segmented, Toggle, Badge, inputCls, cx } fro
 import { DayPicker, HeightInput, NumInput, TimeInput } from "@/components/forms";
 import { EXCLUDABLE, PANTRY_CHOICES } from "@/data/foods";
 import { buildTimeline, buildWeeklyReminders, REMINDER_KINDS } from "@/lib/schedule";
-import { targets } from "@/lib/nutrition";
+import { menuForDay, targets } from "@/lib/nutrition";
+import { GOAL_INFO } from "@/lib/meals";
 import { dateKey, fmt12, DAY_NAMES, addDays } from "@/lib/date";
 import { Icon } from "@/components/Icon";
 import { JourneyPath } from "@/components/JourneyPath";
 import { Logo } from "@/components/Logo";
 import { HealthStep } from "@/components/HealthStep";
-import { validateBody, validateGym, validateHealth, validateSchedule, bmi, minHealthyWeightLb, type Errors } from "@/lib/validation";
+import { MealsPicker } from "@/components/MealsPicker";
+import { validateBody, validateGym, validateHealth, validateSchedule, bmi, minHealthyWeightLb, maxGainWeightLb, type Errors } from "@/lib/validation";
 import { enablePush, isAndroid, isIOS, isPushSupported, isStandalone, serverStatus } from "@/lib/push-client";
 import type { HabitId } from "@/lib/types";
 
@@ -156,6 +158,35 @@ export default function Onboarding() {
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Tu cuerpo</h1>
             <p className="text-sm text-muted">Con esto calculamos tus calorías, tu proteína y una meta saludable.</p>
+            <Field label="¿Cuál es tu objetivo?">
+              <div className="grid grid-cols-3 gap-2">
+                {(["perder", "mantener", "ganar"] as const).map((g) => {
+                  const on = (p.goal ?? "perder") === g;
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() =>
+                        setProfile({
+                          goal: g,
+                          mealsPerDay: undefined,
+                          calorieTarget: undefined,
+                          ...(g === "mantener" ? { goalWeightLb: p.startWeightLb } : p.goal === "mantener" ? { goalWeightLb: 0 } : {}),
+                        })
+                      }
+                      className={cx(
+                        "tap flex flex-col items-center gap-1 rounded-2xl border p-3 text-center transition",
+                        on ? "border-transparent grad text-accent-ink" : "border-line bg-surface-2",
+                      )}
+                    >
+                      <span className="text-2xl">{GOAL_INFO[g].emoji}</span>
+                      <span className="text-[13px] font-semibold leading-tight">{GOAL_INFO[g].label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="mt-1.5 block text-xs text-muted">{GOAL_INFO[p.goal ?? "perder"].desc}.</span>
+            </Field>
             <Field label="Sexo">
               <Segmented value={p.sex} onChange={(v) => setProfile({ sex: v })} options={[{ value: "m", label: "Masculino" }, { value: "f", label: "Femenino" }]} />
             </Field>
@@ -176,20 +207,31 @@ export default function Onboarding() {
               <HeightInput cm={p.heightCm} onChange={(cm) => setProfile({ heightCm: cm })} />
               {err("height")}
             </Field>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cx("grid gap-3", (p.goal ?? "perder") !== "mantener" ? "grid-cols-2" : "grid-cols-1")}>
               <Field label="Peso actual">
-                <NumInput value={p.startWeightLb} onChange={(v) => setProfile({ startWeightLb: v ?? 0 })} suffix="lb" step={0.1} />
+                <NumInput
+                  value={p.startWeightLb}
+                  onChange={(v) => setProfile({ startWeightLb: v ?? 0, ...(p.goal === "mantener" ? { goalWeightLb: v ?? 0 } : {}) })}
+                  suffix="lb"
+                  step={0.1}
+                />
                 {err("weight")}
               </Field>
-              <Field label="Peso meta">
-                <NumInput value={p.goalWeightLb} onChange={(v) => setProfile({ goalWeightLb: v ?? 0 })} suffix="lb" step={0.1} />
-              </Field>
+              {(p.goal ?? "perder") !== "mantener" && (
+                <Field label="Peso meta">
+                  <NumInput value={p.goalWeightLb} onChange={(v) => setProfile({ goalWeightLb: v ?? 0 })} suffix="lb" step={0.1} />
+                </Field>
+              )}
             </div>
             {err("goal")}
             {p.heightCm >= 120 && p.startWeightLb >= 80 && (
               <p className="-mt-1 text-xs text-muted">
-                IMC actual {bmi(p.startWeightLb, p.heightCm).toFixed(1)} · meta mínima saludable para tu estatura: {minHealthyWeightLb(p.heightCm)} lb.
-                Lo recomendable es bajar entre 0.5 y 1 lb por semana.
+                IMC actual {bmi(p.startWeightLb, p.heightCm).toFixed(1)} ·{" "}
+                {p.goal === "ganar"
+                  ? `meta razonable hasta ${maxGainWeightLb(p.heightCm)} lb. Lo ideal es subir 0.25–0.5 lb por semana para que sea músculo.`
+                  : p.goal === "mantener"
+                    ? "mantendrás tu peso mientras ganas fuerza y mejoras tu composición."
+                    : `meta mínima saludable para tu estatura: ${minHealthyWeightLb(p.heightCm)} lb. Lo recomendable es bajar entre 0.5 y 1 % de tu peso por semana.`}
               </p>
             )}
             <Field label="Medida de cintura (opcional)" hint="A la altura del ombligo, relajado.">
@@ -289,10 +331,7 @@ export default function Onboarding() {
         {step === 5 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Alimentación</h1>
-            <Field label="¿Cuántas veces comes al día ahora?">
-              <Segmented value={p.mealsBefore} onChange={(v) => setProfile({ mealsBefore: v })} options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}` }))} />
-            </Field>
-            <p className="-mt-2 text-xs text-muted">El plan usará 3 momentos: primera comida, merienda pre-entreno y cena.</p>
+            <MealsPicker />
             <Field label="Presupuesto semanal de comida">
               <NumInput value={p.budgetWeekly} onChange={(v) => setProfile({ budgetWeekly: v ?? 0 })} suffix="RD$" step={100} />
             </Field>
@@ -516,7 +555,9 @@ function Summary({ overrides, setOverride }: { overrides: Record<string, string>
   }, [p.gymDays]);
   const tl = buildTimeline(p, sample, { overrides });
   const wd = new Date(sample + "T12:00").getDay();
-  const toLose = p.startWeightLb - p.goalWeightLb;
+  const goal = p.goal ?? "perder";
+  const diff = Math.abs(p.startWeightLb - p.goalWeightLb);
+  const meals = menuForDay(wd, undefined, p, t.kcal);
 
   return (
     <div className="space-y-4">
@@ -530,13 +571,49 @@ function Summary({ overrides, setOverride }: { overrides: Record<string, string>
         <Card>
           <div className="text-xs text-muted">Proteína diaria</div>
           <div className="font-display text-3xl font-bold text-accent-text">{t.protein}–{Math.round(t.protein * 1.2)}<span className="text-base"> g</span></div>
-          <div className="text-xs text-muted">para conservar músculo</div>
+          <div className="text-xs text-muted">{goal === "ganar" ? "para construir músculo" : "para conservar músculo"}</div>
         </Card>
       </div>
       <Card className="text-sm text-muted">
-        Meta: bajar <b className="text-fg">{toLose} lb</b> a un ritmo de 0.5–1 lb por semana. Cada 2 semanas la app revisa tu tendencia real
-        y te sugiere ajustar las calorías.
+        {goal === "perder" && (
+          <>
+            Meta: bajar <b className="text-fg">{diff} lb</b> a un ritmo de 0.5–1 % de tu peso por semana (déficit moderado del 20 %).
+          </>
+        )}
+        {goal === "ganar" && (
+          <>
+            Meta: subir <b className="text-fg">{diff} lb</b> poco a poco, 0.25–0.5 lb por semana (10 % más de lo que gastas), para que sea músculo.
+          </>
+        )}
+        {goal === "mantener" && <>Meta: mantener tu peso comiendo lo que gastas, mientras ganas fuerza.</>}{" "}
+        Cada 2 semanas la app revisa tu tendencia real y te sugiere ajustar las calorías.
       </Card>
+
+      <div>
+        <div className="mb-2 text-sm font-semibold">
+          Tus comidas: {meals.length} al día <span className="font-normal text-muted">(porciones ya calculadas)</span>
+        </div>
+        <Card className="divide-y divide-line !p-0">
+          {meals.map((m) => {
+            const it = tl.find((x) => x.meal === m.slot);
+            return (
+              <div key={m.slot} className="flex items-center gap-3 px-3 py-2.5">
+                <span className="text-xl">{m.recipe.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold">{it?.title}</div>
+                  <div className="truncate text-xs text-muted">{m.recipe.name}</div>
+                </div>
+                <div className="text-right text-xs">
+                  <div className="font-semibold">{it ? fmt12(it.time) : ""}</div>
+                  <div className="text-muted">
+                    {Math.round(m.macros.kcal)} kcal · {Math.round(m.macros.protein)} g
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      </div>
       <div>
         <div className="mb-2 text-sm font-semibold">
           Ejemplo: tu {DAY_NAMES[wd].toLowerCase()} <span className="font-normal text-muted">(toca una hora para cambiarla)</span>
@@ -563,3 +640,4 @@ function Summary({ overrides, setOverride }: { overrides: Record<string, string>
     </div>
   );
 }
+

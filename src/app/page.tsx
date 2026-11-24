@@ -78,7 +78,8 @@ export default function Dashboard() {
   const eatenKcal = eaten.reduce((a: number, e: { kcal: number }) => a + e.kcal, 0);
   const eatenProt = eaten.reduce((a: number, e: { protein: number }) => a + e.protein, 0);
   const isWeighDay = [1, 3, 5].includes(day.weekday) && profile.habits.pesaje;
-  const lost = profile.startWeightLb - trend;
+  const goal = profile.goal ?? "perder";
+  const change = trend - profile.startWeightLb; // + subió, − bajó
   const water = metrics.water ?? 0;
 
   return (
@@ -114,10 +115,16 @@ export default function Dashboard() {
               <span className="text-sm font-medium text-muted">lb</span>
             </div>
             <div className="mt-1 text-[13px] text-muted">
-              {lost > 0.05 ? (
+              {Math.abs(change) > 0.05 ? (
                 <>
-                  <span className="font-semibold text-accent-text">−{lost.toFixed(1)} lb</span> desde el inicio
+                  <span className={cx("font-semibold", (goal === "ganar" ? change > 0 : goal === "perder" ? change < 0 : Math.abs(change) <= 2) ? "text-accent-text" : "text-warn")}>
+                    {change > 0 ? "+" : "−"}
+                    {Math.abs(change).toFixed(1)} lb
+                  </span>{" "}
+                  desde el inicio
                 </>
+              ) : goal === "mantener" ? (
+                <>Objetivo: mantener {profile.goalWeightLb} lb</>
               ) : (
                 <>Punto de partida · meta {profile.goalWeightLb} lb</>
               )}
@@ -207,7 +214,7 @@ export default function Dashboard() {
           <b className="text-accent-text">{Math.round(day.menu.reduce((a, m) => a + m.macros.protein, 0))} g</b> proteína
         </span>
         <span className="h-1 w-1 rounded-full bg-muted" />
-        <span>3 comidas</span>
+        <span>{day.menu.length} comidas</span>
       </div>
       <div className="no-scrollbar snap-x-mandatory -mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
         {day.menu.map((m) => {

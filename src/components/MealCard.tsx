@@ -5,7 +5,8 @@ import { useState } from "react";
 import { BookOpen, Check, RefreshCw } from "lucide-react";
 import { FOOD } from "@/data/foods";
 import { RECIPES } from "@/data/recipes";
-import { SLOT_LABEL, SLOT_LABEL_REST } from "@/data/mealplan";
+import { RECIPE_POOL } from "@/data/mealplan";
+import { goalOf, mealsPerDay, slotLabel } from "@/lib/meals";
 import { formatQty, recipeMacros, excludedFoodIds, recipeAllowed, type PlannedMeal } from "@/lib/nutrition";
 import { useApp } from "@/lib/store";
 import { Button, Sheet, cx } from "./ui";
@@ -29,7 +30,8 @@ export function MealCard({
 }) {
   const [swap, setSwap] = useState(false);
   const r = meal.recipe;
-  const label = (restDay ? SLOT_LABEL_REST : SLOT_LABEL)[meal.slot];
+  const profile = useApp((s) => s.profile);
+  const label = slotLabel(meal.slot, mealsPerDay(profile), !restDay, goalOf(profile));
   const mains = r.ingredients.filter((i) => !FOOD[i.food]?.seasoning || i.food === "aceite").slice(0, compact ? 4 : 8);
 
   return (
@@ -105,7 +107,7 @@ function SwapSheet({ open, onClose, meal, weekday }: { open: boolean; onClose: (
   const profile = useApp((s) => s.profile);
   const favorites = useApp((s) => s.favorites);
   const ex = excludedFoodIds(profile);
-  const options = RECIPES.filter((r) => r.slots.includes(meal.slot) && recipeAllowed(r, ex)).sort(
+  const options = RECIPES.filter((r) => r.slots.includes(RECIPE_POOL[meal.slot]) && recipeAllowed(r, ex)).sort(
     (a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id)),
   );
   return (

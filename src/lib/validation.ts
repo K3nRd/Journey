@@ -9,6 +9,12 @@ export function minHealthyWeightLb(heightCm: number) {
   return Math.ceil((18.5 * m * m) / KG_PER_LB);
 }
 
+/** Tope razonable para una etapa de ganar músculo (IMC 27). */
+export function maxGainWeightLb(heightCm: number) {
+  const m = heightCm / 100;
+  return Math.floor((27 * m * m) / KG_PER_LB);
+}
+
 export function bmi(weightLb: number, heightCm: number) {
   const m = heightCm / 100;
   return m > 0 ? (weightLb * KG_PER_LB) / (m * m) : 0;
@@ -28,12 +34,22 @@ export function validateBody(p: Profile): Errors {
   if (!p.startWeightLb) e.weight = "Escribe tu peso actual.";
   else if (p.startWeightLb < 80 || p.startWeightLb > 600) e.weight = "Revisa tu peso (entre 80 y 600 lb).";
 
-  if (!p.goalWeightLb) e.goal = "Escribe tu peso meta.";
-  else if (!e.weight && p.goalWeightLb >= p.startWeightLb)
-    e.goal = "Por ahora Journey está pensada para bajar de peso: la meta debe ser menor que tu peso actual.";
-  else if (!e.height && p.heightCm) {
-    const min = minHealthyWeightLb(p.heightCm);
-    if (p.goalWeightLb < min) e.goal = `Para tu estatura, la meta mínima saludable es ${min} lb (IMC 18.5).`;
+  const goal = p.goal ?? "perder";
+  if (goal !== "mantener") {
+    if (!p.goalWeightLb) e.goal = "Escribe tu peso meta.";
+    else if (!e.weight && goal === "perder" && p.goalWeightLb >= p.startWeightLb)
+      e.goal = "Para bajar grasa, la meta debe ser menor que tu peso actual. Si quieres subir, elige «Ganar músculo».";
+    else if (!e.weight && goal === "ganar" && p.goalWeightLb <= p.startWeightLb)
+      e.goal = "Para ganar músculo, la meta debe ser mayor que tu peso actual. Si quieres bajar, elige «Bajar grasa».";
+    else if (!e.height && p.heightCm) {
+      const min = minHealthyWeightLb(p.heightCm);
+      const max = maxGainWeightLb(p.heightCm);
+      if (p.goalWeightLb < min) e.goal = `Para tu estatura, la meta mínima saludable es ${min} lb (IMC 18.5).`;
+      else if (goal === "ganar" && p.goalWeightLb > max)
+        e.goal = `Para ganar músculo sin acumular mucha grasa, una meta razonable para tu estatura es hasta ${max} lb. Puedes subirla después.`;
+      else if (goal === "ganar" && p.goalWeightLb - p.startWeightLb > 30)
+        e.goal = "Ponte una meta de hasta 30 lb más; al llegar, puedes fijar la siguiente.";
+    }
   }
 
   if (p.startWaistIn !== undefined && (p.startWaistIn < 20 || p.startWaistIn > 80)) e.waist = "Revisa la medida (entre 20 y 80 pulgadas).";

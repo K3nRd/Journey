@@ -37,10 +37,12 @@ export default function Progreso() {
   const proj = projection(trend, p.goalWeightLb, rate);
   const lastAdjust = calorieHistory.at(-1)?.date ?? p.startDate;
   const canAdjust = daysBetween(lastAdjust, dateKey()) >= 14 && daysBetween(p.startDate, dateKey()) >= 14;
-  const advice = calorieAdvice(rate);
-  const lost = p.startWeightLb - trend;
-  const total = p.startWeightLb - p.goalWeightLb;
-  const pct = Math.max(0, Math.min(1, lost / total));
+  const goal = p.goal ?? "perder";
+  const advice = calorieAdvice(rate, goal, trend);
+  const change = trend - p.startWeightLb;
+  const span = p.goalWeightLb - p.startWeightLb;
+  const pct = Math.abs(span) < 1 ? (Math.abs(change) <= 2 ? 1 : 0.5) : Math.max(0, Math.min(1, change / span));
+  const onTrack = goal === "ganar" ? change >= 0 : goal === "perder" ? change <= 0 : Math.abs(change) <= 2;
 
   const finished = workouts.filter((w) => w.finishedAt);
   const prCount = useMemo(() => {
@@ -54,6 +56,7 @@ export default function Progreso() {
   }, [finished]);
   const strk = useMemo(() => streak((k) => completionFor(checks, p, overrides, k)), [checks, p, overrides]);
   const ach = achievements({
+    goal,
     startWeight: p.startWeightLb,
     currentTrend: weights.length ? trend : null,
     goalWeight: p.goalWeightLb,
@@ -87,9 +90,9 @@ export default function Progreso() {
             <div className="text-4xl font-bold">{trend.toFixed(1)}<span className="text-base font-normal text-muted"> lb</span></div>
           </div>
           <div className="text-right">
-            <div className={cx("text-lg font-bold", lost >= 0 ? "text-good" : "text-warn")}>
-              {lost >= 0 ? "−" : "+"}
-              {Math.abs(lost).toFixed(1)} lb
+            <div className={cx("text-lg font-bold", onTrack ? "text-good" : "text-warn")}>
+              {change > 0 ? "+" : change < 0 ? "−" : ""}
+              {Math.abs(change).toFixed(1)} lb
             </div>
             <div className="text-xs text-muted">desde {p.startWeightLb} lb</div>
           </div>
@@ -97,7 +100,7 @@ export default function Progreso() {
         <div className="mt-3">
           <div className="mb-1 flex justify-between text-xs text-muted">
             <span>{p.startWeightLb}</span>
-            <span>{Math.round(pct * 100)}% de la meta</span>
+            <span>{goal === "mantener" ? (Math.abs(change) <= 2 ? "En tu rango (±2 lb)" : "Fuera de tu rango") : `${Math.round(pct * 100)}% de la meta`}</span>
             <span>{p.goalWeightLb}</span>
           </div>
           <div className="h-2.5 overflow-hidden rounded-full bg-surface-3">

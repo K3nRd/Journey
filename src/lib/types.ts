@@ -1,7 +1,8 @@
 export type Sex = "m" | "f";
 export type Level = "principiante" | "intermedio" | "avanzado";
 export type WorkType = "sentado" | "mixto" | "de pie";
-export type MealSlot = "comida1" | "merienda" | "cena";
+export type MealSlot = "comida1" | "almuerzo" | "merienda" | "cena" | "snack";
+export type Goal = "perder" | "mantener" | "ganar";
 
 export type HabitId =
   | "agua"
@@ -52,6 +53,8 @@ export interface Profile {
   calorieTarget?: number; // ajuste manual / automático
 
   returningFromBreak?: boolean; // vuelve tras una pausa de entrenamiento
+  goal?: Goal; // por defecto "perder"
+  mealsPerDay?: 3 | 4 | 5; // por defecto 3
   health?: HealthScreening;
 }
 

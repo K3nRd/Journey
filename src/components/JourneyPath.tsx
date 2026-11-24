@@ -21,11 +21,18 @@ function at(t: number) {
  * y un marcador en tu posición actual.
  */
 export function JourneyPath({ start, goal, current, className }: { start: number; goal: number; current: number; className?: string }) {
-  const total = Math.max(1, start - goal);
-  const pct = Math.max(0, Math.min(1, (start - current) / total));
+  // Funciona para bajar (meta menor), subir (meta mayor) y mantener (meta igual)
+  const span = goal - start;
+  const maintain = Math.abs(span) < 1;
+  const pct = maintain
+    ? Math.max(0.15, 1 - Math.min(1, Math.abs(current - goal) / 6))
+    : Math.max(0, Math.min(1, (current - start) / span));
   const me = at(pct);
   const milestones: { t: number; lb: number }[] = [];
-  for (let lb = start - 5; lb > goal; lb -= 5) milestones.push({ t: (start - lb) / total, lb });
+  if (!maintain) {
+    const step = span > 0 ? 5 : -5;
+    for (let lb = start + step; span > 0 ? lb < goal : lb > goal; lb += step) milestones.push({ t: (lb - start) / span, lb });
+  }
 
   return (
     <div className={cx("relative", className)}>
@@ -70,9 +77,11 @@ export function JourneyPath({ start, goal, current, className }: { start: number
         <circle cx={me.x} cy={me.y} r="7.5" fill="#c8f135" stroke="var(--bg)" strokeWidth="3" />
       </svg>
       <div className="mt-1 flex justify-between text-[11px] font-medium text-muted">
-        <span>{start} lb</span>
-        <span className="text-accent-text">{Math.round(pct * 100)}% del camino</span>
-        <span>{goal} lb</span>
+        <span>{maintain ? `${goal - 3} lb` : `${start} lb`}</span>
+        <span className="text-accent-text">
+          {maintain ? (Math.abs(current - goal) <= 2 ? "En tu rango de mantenimiento" : "Fuera de tu rango") : `${Math.round(pct * 100)}% del camino`}
+        </span>
+        <span>{maintain ? `${goal + 3} lb` : `${goal} lb`}</span>
       </div>
     </div>
   );

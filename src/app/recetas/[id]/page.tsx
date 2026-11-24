@@ -10,7 +10,8 @@ import { formatQty, recipeMacros } from "@/lib/nutrition";
 import { recipeCost } from "@/lib/recipes-search";
 import { PageHeader, Card, Chip, SectionTitle, Badge, Sheet, Button, cx } from "@/components/ui";
 import { DAY_NAMES } from "@/lib/date";
-import { SLOT_LABEL } from "@/data/mealplan";
+import { RECIPE_POOL } from "@/data/mealplan";
+import { goalOf, mealsPerDay, slotLabel, slotsFor } from "@/lib/meals";
 
 export default function RecipePage() {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ export default function RecipePage() {
   const toggleFavorite = useApp((s) => s.toggleFavorite);
   const swapMeal = useApp((s) => s.swapMeal);
   const prices = useApp((s) => s.prices);
+  const profile = useApp((s) => s.profile);
   const [scale, setScale] = useState(1);
   const [done, setDone] = useState<number[]>([]);
   const [plan, setPlan] = useState(false);
@@ -125,9 +127,9 @@ export default function RecipePage() {
 
       <Sheet open={plan} onClose={() => setPlan(false)} title="¿Qué día?">
         <div className="space-y-2">
-          {r.slots.map((slot) => (
+          {slotsFor(mealsPerDay(profile)).filter((slot) => r.slots.includes(RECIPE_POOL[slot])).map((slot) => (
             <div key={slot}>
-              <div className="mb-1 text-sm font-semibold">{SLOT_LABEL[slot]}</div>
+              <div className="mb-1 text-sm font-semibold">{slotLabel(slot, mealsPerDay(profile), false, goalOf(profile))}</div>
               <div className="grid grid-cols-4 gap-2">
                 {[1, 2, 3, 4, 5, 6, 0].map((d) => (
                   <Button

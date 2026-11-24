@@ -95,8 +95,8 @@ export function targets(p: Profile, currentWeightLb: number): Targets {
   const protein = Math.round((refLb * LB_TO_KG * perKg) / 5) * 5;
   const fat = Math.round((kcal * (goal === "ganar" ? 0.25 : 0.27)) / 9);
   const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4));
-  const sugg = suggestedMeals(kcal, goal, protein);
-  return { kcal, protein, fat, carbs, tdee: Math.round(t), suggestedKcal: suggested, goal, meals: p.mealsPerDay ?? sugg, suggestedMeals: sugg };
+  const sugg = suggestedMeals(kcal, goal, protein, p.gymDays.length > 0);
+  return { kcal, protein, fat, carbs, tdee: Math.round(t), suggestedKcal: suggested, goal, meals: mealsPerDay(p), suggestedMeals: sugg };
 }
 
 // ── Exclusiones ───────────────────────────────────────
@@ -136,7 +136,7 @@ export function menuForDay(
   const dayGoal = kcalTarget * 0.95;
   const used = new Set<string>();
 
-  return slotsFor(count).map((slot) => {
+  return slotsFor(count, goalOf(p)).map((slot) => {
     const pool = RECIPE_POOL[slot];
     let r = RECIPE[swaps?.[slot] ?? baseRecipeFor(weekday, slot)];
     if (!r || !recipeAllowed(r, excluded) || (used.has(r.id) && !swaps?.[slot])) {

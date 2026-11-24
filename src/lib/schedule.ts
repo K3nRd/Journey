@@ -128,16 +128,30 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
   // ── Horario de comidas (según cuántas haga, su objetivo y su día) ──
   const count = mealsPerDay(p);
   const goal = goalOf(p);
-  const slots = slotsFor(count);
+  const slots = slotsFor(count, goal);
   const r15 = (m: number) => Math.round(m / 15) * 15;
+  const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  // Desayuno: dentro de la primera hora tras despertar (y antes de entrar a trabajar)
   const comida1 = Math.min(wake + 45, isWork ? Math.max(wake + 20, ws - 10) : wake + 60);
-  const almuerzo = slots.includes("almuerzo") ? r15(isWork ? (ws + we) / 2 : comida1 + 240) : null;
-  const cenaMeal = isGym ? gymEnd + 40 : Math.min(sleep - 150, Math.max(toMin("19:00"), comida1 + 360));
-  const meriendaMin = isGym ? gym - 75 : r15(((almuerzo ?? comida1) + cenaMeal) / 2);
+  // Almuerzo: cerca del mediodía (12:00–13:30) y 3.5–5 h después del desayuno
+  const almuerzo = r15(Math.max(comida1 + 210, clamp(comida1 + 240, toMin("12:00"), toMin("13:30"))));
+  // Cena: la última comida idealmente 3 h antes de dormir (mínimo 2 h); los días de gym, después de entrenar
+  const cenaMeal = isGym && gym > almuerzo
+    ? Math.max(gymEnd + 15, Math.min(gymEnd + 45, sleep - 120))
+    : r15(Math.max(almuerzo + 240, Math.min(sleep - 180, Math.max(toMin("18:30"), almuerzo + 330))));
+  const hasMerienda = slots.includes("merienda");
+  // Merienda: 60–90 min antes del gym, o a mitad de la tarde
+  const meriendaMin = hasMerienda
+    ? isGym && gym - 75 >= almuerzo + 120
+      ? gym - 75
+      : r15((almuerzo + Math.min(cenaMeal, isGym && gym > almuerzo ? gym : cenaMeal)) / 2)
+    : null;
+  // Media mañana entre desayuno y almuerzo, o proteína antes de dormir si busca ganar músculo
+  const nightSnack = Math.max(cenaMeal + 90, sleep - 75);
   const snackMin = slots.includes("snack")
-    ? goal === "ganar"
-      ? Math.max(cenaMeal + 75, sleep - 90)
-      : r15((comida1 + (almuerzo ?? meriendaMin)) / 2)
+    ? goal === "ganar" && nightSnack <= sleep - 30
+      ? nightSnack
+      : r15((comida1 + almuerzo) / 2)
     : null;
   const label = (slot: MealSlot) => slotLabel(slot, count, isGym, goal);
 
@@ -170,12 +184,12 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
       reminderKind: "habitos",
     } as TimelineItem & { min: number });
     // Caminar después de almorzar ayuda a controlar el azúcar en sangre
-    walkMin = almuerzo !== null ? almuerzo + 30 : ws + Math.round((we - ws) / 2 / 30) * 30;
+    walkMin = almuerzo + 30;
     if (h.pausas) {
       let n = 1;
       // La evidencia favorece moverse cada 30–60 min; avisamos cada 90 para no saturar
       for (let t = ws + 90; t < we - 30; t += 90) {
-        if (Math.abs(t - walkMin) < 45 || (almuerzo !== null && Math.abs(t - almuerzo) < 40)) continue;
+        if (Math.abs(t - walkMin) < 45 || Math.abs(t - almuerzo) < 40) continue;
         add({
           id: `pausa-${n++}`,
           min: t,
@@ -197,7 +211,7 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     add({
       id: "caminar",
       min: walkMin,
-      title: isWork ? (almuerzo !== null ? "Caminar 10–15 min tras almorzar" : "Caminar 10–15 min") : "Caminar 30 min",
+      title: isWork ? "Caminar 10–15 min tras almorzar" : "Caminar 30 min",
       desc: `Meta: ${p.stepsGoal.toLocaleString("es-DO")} pasos en el día.`,
       kind: "walk",
       icon: "Footprints",
@@ -207,7 +221,7 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     });
   }
 
-  if (almuerzo !== null) {
+  {
     add({
       id: "almuerzo",
       min: almuerzo,
@@ -237,10 +251,9 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
   }
 
   // Merienda, gimnasio y cena
-  const merienda = meriendaMin;
-  add({
+  if (meriendaMin !== null) add({
     id: "merienda",
-    min: merienda,
+    min: meriendaMin,
     title: label("merienda"),
     kind: "meal",
     meal: "merienda",

@@ -127,7 +127,7 @@ export default function RecipePage() {
 
       <Sheet open={plan} onClose={() => setPlan(false)} title="¿Qué día?">
         <div className="space-y-2">
-          {slotsFor(mealsPerDay(profile)).filter((slot) => r.slots.includes(RECIPE_POOL[slot])).map((slot) => (
+          {slotsFor(mealsPerDay(profile), goalOf(profile)).filter((slot) => r.slots.includes(RECIPE_POOL[slot])).map((slot) => (
             <div key={slot}>
               <div className="mb-1 text-sm font-semibold">{slotLabel(slot, mealsPerDay(profile), false, goalOf(profile))}</div>
               <div className="grid grid-cols-4 gap-2">

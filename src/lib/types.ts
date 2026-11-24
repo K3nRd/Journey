@@ -54,7 +54,7 @@ export interface Profile {
 
   returningFromBreak?: boolean; // vuelve tras una pausa de entrenamiento
   goal?: Goal; // por defecto "perder"
-  mealsPerDay?: 3 | 4 | 5; // por defecto 3
+  mealsPerDay?: 3 | 4 | 5; // por defecto el sugerido
   health?: HealthScreening;
 }
 

@@ -38,6 +38,17 @@ export const GUIDE: GuideSection[] = [
         strength: "fuerte",
       },
       {
+        id: "horario-comidas",
+        emoji: "⏰",
+        title: "Horario de comidas",
+        number: "Desayuno ≤1 h tras despertar · cena 2–3 h antes de dormir",
+        what: "Desayunar temprano y concentrar más calorías en la primera mitad del día se asocia con mejor control del azúcar y del peso; cenar tarde (1 h antes de dormir) sube la glucosa nocturna. Para el músculo, conviene repartir 20–40 g de proteína cada 3–4 h. La evidencia es en parte observacional: lo que más cuenta sigue siendo el total del día y la constancia.",
+        how: "Desayuna dentro de la primera hora, almuerza cerca del mediodía, haz la comida más grande antes de la tarde y termina de cenar 2–3 h antes de acostarte. Come a horas parecidas cada día.",
+        journey: "Tu rutina coloca el desayuno al despertar, el almuerzo entre 12:00 y 13:30, la merienda 1 h antes del gym y la cena al menos 2 h antes de dormir, con más calorías en desayuno y almuerzo.",
+        source: { label: "Crononutrición y salud cardiometabólica (revisión 2023)", url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10471112/" },
+        strength: "moderada",
+      },
+      {
         id: "fruta-verdura",
         emoji: "🥗",
         title: "Frutas y vegetales",

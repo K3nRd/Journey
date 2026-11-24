@@ -12,12 +12,12 @@ function MealsPicker({ label = "¿Cuántas comidas al día?" }: { label?: string
   const setProfile = useApp((s) => s.setProfile);
   const { trend } = useCurrentWeight();
   const t = targets(p, trend || p.startWeightLb || 150);
-  const current = p.mealsPerDay ?? t.suggestedMeals;
+  const current = t.meals;
   const why =
     t.goal === "ganar"
-      ? "Para ganar músculo hay que comer bastante: repartirlo en más comidas lo hace más fácil."
+      ? "Para ganar músculo hay que comer bastante: más comidas, y algo de proteína antes de dormir, lo hace más fácil."
       : t.suggestedMeals >= 4
-        ? "Repartir tus calorías y tu proteína (unos 25–40 g por comida) te mantiene con energía y menos hambre."
+        ? "Comer cada 3–4 h con 20–40 g de proteína, y una merienda 1 h antes del gym, te da energía y menos hambre."
         : "Con tus calorías, 3 comidas bien armadas son suficientes y más fáciles de mantener.";
   return (
     <Field label={label}>
@@ -35,7 +35,7 @@ function MealsPicker({ label = "¿Cuántas comidas al día?" }: { label?: string
               )}
             >
               <div className="font-display text-2xl font-bold">{n}</div>
-              <div className="text-[11px] font-medium">{n === 3 ? "3 principales" : n === 4 ? "+ almuerzo" : "+ 2 meriendas"}</div>
+              <div className="text-[11px] font-medium">{n === 3 ? "Desayuno, almuerzo, cena" : n === 4 ? "+ merienda" : t.goal === "ganar" ? "+ proteína nocturna" : "+ media mañana"}</div>
               {n === t.suggestedMeals && (
                 <span className={cx("absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold", on ? "bg-bg text-fg" : "bg-accent-soft text-accent-text")}>
                   Sugerido

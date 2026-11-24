@@ -190,15 +190,15 @@ export default function Progreso() {
 
       <div className="mt-6 grid grid-cols-3 gap-2">
         <Link href="/progreso/fotos" className="card flex flex-col items-center gap-1 !p-3 text-center">
-          <Camera className="h-5 w-5 text-accent" />
+          <Camera className="h-5 w-5 text-accent-text" />
           <span className="text-xs font-medium">Fotos</span>
         </Link>
         <Link href="/revision" className="card flex flex-col items-center gap-1 !p-3 text-center">
-          <ClipboardCheck className="h-5 w-5 text-accent" />
+          <ClipboardCheck className="h-5 w-5 text-accent-text" />
           <span className="text-xs font-medium">Revisión</span>
         </Link>
         <Link href="/progreso/informe" className="card flex flex-col items-center gap-1 !p-3 text-center">
-          <FileBarChart className="h-5 w-5 text-accent" />
+          <FileBarChart className="h-5 w-5 text-accent-text" />
           <span className="text-xs font-medium">Informe</span>
         </Link>
       </div>

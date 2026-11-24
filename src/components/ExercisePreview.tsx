@@ -69,7 +69,7 @@ export function ExercisePreview({
                 }}
                 className={cx(
                   "rounded-full px-2.5 py-1 text-xs font-semibold backdrop-blur",
-                  frame === i ? "bg-accent text-accent-ink" : "bg-black/50 text-white",
+                  frame === i ? "grad text-accent-ink" : "bg-black/50 text-white",
                 )}
               >
                 {i + 1}. {l}

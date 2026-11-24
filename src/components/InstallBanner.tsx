@@ -23,9 +23,9 @@ export function InstallBanner() {
 
   if (!state || dismissed) return null;
   return (
-    <div className="mb-3 flex items-center gap-3 rounded-2xl border border-accent/40 bg-accent-soft p-3">
-      {state === "install" ? <Download className="h-5 w-5 shrink-0 text-accent" /> : <Bell className="h-5 w-5 shrink-0 text-accent" />}
-      <Link href="/ajustes#notificaciones" className="min-w-0 flex-1 text-sm">
+    <div className="rise mb-4 flex items-center gap-3 rounded-[1.25rem] border border-line bg-surface p-3 shadow-lg">
+      <span className="grad grid h-10 w-10 shrink-0 place-items-center rounded-2xl text-accent-ink">{state === "install" ? <Download className="h-5 w-5" /> : <Bell className="h-5 w-5" />}</span>
+      <Link href="/ajustes#notificaciones" className="min-w-0 flex-1 text-[13px] leading-snug">
         {state === "install" ? (
           <>
             <b>Instala la app</b> en tu pantalla de inicio

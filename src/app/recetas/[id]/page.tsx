@@ -68,7 +68,7 @@ export default function RecipePage() {
           [`${Math.round(m.fat)} g`, "grasa"],
         ].map(([v, l], i) => (
           <Card key={l} className="!p-2">
-            <div className={cx("text-lg font-bold", i === 1 && "text-accent")}>{v}</div>
+            <div className={cx("text-lg font-bold", i === 1 && "text-accent-text")}>{v}</div>
             <div className="text-[11px] text-muted">{l}</div>
           </Card>
         ))}
@@ -109,7 +109,7 @@ export default function RecipePage() {
               onClick={() => setDone((d) => (on ? d.filter((x) => x !== i) : [...d, i]))}
               className={cx("card flex w-full gap-3 !p-3 text-left", on && "opacity-50")}
             >
-              <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-bold", on ? "bg-accent text-accent-ink" : "bg-surface-2 text-accent")}>
+              <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-full text-sm font-bold", on ? "grad text-accent-ink" : "bg-surface-2 text-accent-text")}>
                 {on ? <Check className="h-4 w-4" /> : i + 1}
               </span>
               <span className={cx("text-sm", on && "line-through")}>{s}</span>

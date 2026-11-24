@@ -42,7 +42,7 @@ export default function Entreno() {
               href={s.type === "descanso" ? "#" : isToday ? "/entreno/hoy" : `/entreno/${s.key}`}
               className={cx("card flex items-center gap-3 !p-3", isToday && "border-accent")}
             >
-              <div className={cx("w-12 shrink-0 text-center", isToday ? "text-accent" : "text-muted")}>
+              <div className={cx("w-12 shrink-0 text-center", isToday ? "text-accent-text" : "text-muted")}>
                 <div className="text-[11px] font-semibold uppercase">{DAY_NAMES[parseKey(k).getDay()].slice(0, 3)}</div>
                 <div className="text-lg font-bold">{parseKey(k).getDate()}</div>
               </div>
@@ -61,12 +61,12 @@ export default function Entreno() {
       <SectionTitle>Herramientas</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
         <Link href="/entreno/discos" className="card flex flex-col gap-1 !p-3">
-          <Calculator className="h-5 w-5 text-accent" />
+          <Calculator className="h-5 w-5 text-accent-text" />
           <span className="text-sm font-semibold">Calculadora de discos</span>
           <span className="text-xs text-muted">Qué poner en la barra</span>
         </Link>
         <Link href="/entreno/ejercicios" className="card flex flex-col gap-1 !p-3">
-          <History className="h-5 w-5 text-accent" />
+          <History className="h-5 w-5 text-accent-text" />
           <span className="text-sm font-semibold">Ejercicios y récords</span>
           <span className="text-xs text-muted">Biblioteca y progreso</span>
         </Link>

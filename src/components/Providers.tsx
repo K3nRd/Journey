@@ -22,7 +22,7 @@ export function Providers({ children }: { children: ReactNode }) {
     const apply = () => {
       const t = theme === "system" ? (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark") : theme;
       document.documentElement.dataset.theme = t;
-      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "light" ? "#f4f6f5" : "#0b0f0e");
+      document.querySelector('meta[name="theme-color"]')?.setAttribute("content", t === "light" ? "#f4f4ef" : "#07080a");
     };
     apply();
     if (theme === "system") {
@@ -49,7 +49,7 @@ export function Providers({ children }: { children: ReactNode }) {
   if (!hydrated) {
     return (
       <div className="grid min-h-dvh place-items-center">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-surface-3 border-t-accent" />
+        <div className="font-display text-3xl font-bold grad-text">journey</div>
       </div>
     );
   }

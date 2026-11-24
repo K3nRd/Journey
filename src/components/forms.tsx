@@ -17,7 +17,7 @@ export function DayPicker({ value, onChange }: { value: number[]; onChange: (v: 
             onClick={() => onChange(on ? value.filter((x) => x !== d) : [...value, d].sort())}
             className={cx(
               "h-11 flex-1 rounded-xl border text-sm font-semibold transition",
-              on ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface-2 text-muted",
+              on ? "border-transparent grad text-accent-ink" : "border-line bg-surface-2 text-muted",
             )}
           >
             {DAY_SHORT[d].slice(0, 2)}

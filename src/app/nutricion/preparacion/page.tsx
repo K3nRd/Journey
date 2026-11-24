@@ -58,7 +58,7 @@ export default function Preparacion() {
             ["1:30", "Reparte en envases. Deja en la nevera lo de 3 días; congela el resto de pollo crudo adobado."],
           ].map(([t, s]) => (
             <li key={t} className="flex gap-3">
-              <span className="w-10 shrink-0 font-mono text-xs text-accent">{t}</span>
+              <span className="w-10 shrink-0 font-mono text-xs text-accent-text">{t}</span>
               <span>{s}</span>
             </li>
           ))}
@@ -84,7 +84,7 @@ function Block({ title, tot, line }: { title: string; tot: Record<string, number
       <ul className="space-y-1.5 text-sm">
         {Object.entries(tot).map(([id, g]) => (
           <li key={id} className="flex gap-2">
-            <span className="text-accent">•</span> {line(id, g)}
+            <span className="text-accent-text">•</span> {line(id, g)}
           </li>
         ))}
       </ul>

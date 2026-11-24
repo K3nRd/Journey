@@ -95,7 +95,7 @@ export default function Compras() {
                   <div key={i.food.id} className={cx("flex items-center gap-3 px-3 py-2.5", on && "opacity-50")}>
                     <button
                       onClick={() => !i.inPantry && toggle(i.food.id)}
-                      className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg border-2", on ? "border-accent bg-accent text-accent-ink" : "border-line")}
+                      className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-lg border-2", on ? "border-transparent grad text-accent-ink" : "border-line")}
                       aria-label="Marcar comprado"
                     >
                       {on && <Check className="h-4 w-4" strokeWidth={3} />}

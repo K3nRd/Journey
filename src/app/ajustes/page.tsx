@@ -123,7 +123,7 @@ export default function Ajustes() {
       <SectionTitle
         action={
           Object.keys(s.overrides).length > 0 && (
-            <button className="text-xs text-accent" onClick={() => Object.keys(s.overrides).forEach((k) => s.setOverride(k, null))}>
+            <button className="text-xs text-accent-text" onClick={() => Object.keys(s.overrides).forEach((k) => s.setOverride(k, null))}>
               Restablecer horas
             </button>
           )
@@ -134,7 +134,7 @@ export default function Ajustes() {
       <Card className="divide-y divide-line !p-0">
         {timeline.map((it) => (
           <div key={it.id} className="flex items-center gap-3 px-3 py-2">
-            <Icon name={it.icon} className="h-4 w-4 shrink-0 text-accent" />
+            <Icon name={it.icon} className="h-4 w-4 shrink-0 text-accent-text" />
             <span className="min-w-0 flex-1 truncate text-sm">
               {it.title}
               {s.overrides[it.id] && <span className="ml-1 text-[10px] text-warn">editado</span>}

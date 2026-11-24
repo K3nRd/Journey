@@ -46,7 +46,7 @@ export default function Registro() {
           </div>
           <div className="text-right">
             <div className="text-xs text-muted">Proteína</div>
-            <div className="text-2xl font-bold text-accent">
+            <div className="text-2xl font-bold text-accent-text">
               {prot} <span className="text-sm font-normal text-muted">/ {t.protein} g</span>
             </div>
           </div>
@@ -121,7 +121,7 @@ function AddSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void
             ["manual", "Manual", PencilLine],
           ] as const
         ).map(([k, l, I]) => (
-          <button key={k} onClick={() => setTab(k)} className={cx("flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm", tab === k ? "bg-accent text-accent-ink" : "bg-surface-2 text-muted")}>
+          <button key={k} onClick={() => setTab(k)} className={cx("flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm", tab === k ? "grad text-accent-ink" : "bg-surface-2 text-muted")}>
             <I className="h-4 w-4" /> {l}
           </button>
         ))}
@@ -141,7 +141,7 @@ function AddSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void
               <span className="text-right text-xs">
                 <b>{f.kcal}</b> kcal
                 <br />
-                <span className="text-accent">{f.protein} g</span>
+                <span className="text-accent-text">{f.protein} g</span>
               </span>
             </button>
           ))}
@@ -158,7 +158,7 @@ function AddSheet({ open, onClose, onAdd }: { open: boolean; onClose: () => void
                 <div className="text-sm font-semibold">{f.name}</div>
                 <div className="text-[11px] text-muted">{f.portion}</div>
                 <div className="mt-1 text-xs">
-                  {f.kcal} kcal · <span className="text-accent">{f.protein} g</span>
+                  {f.kcal} kcal · <span className="text-accent-text">{f.protein} g</span>
                 </div>
               </button>
             ))}

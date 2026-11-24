@@ -33,24 +33,25 @@ export function MealCard({
   const mains = r.ingredients.filter((i) => !FOOD[i.food]?.seasoning || i.food === "aceite").slice(0, compact ? 4 : 8);
 
   return (
-    <div className={cx("rounded-2xl border border-line bg-surface-2/60 p-3.5", eaten && "opacity-70")}>
-      <div className="flex items-start gap-3">
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface-3 text-2xl">{r.emoji}</div>
+    <div
+      className={cx("card flex h-full flex-col overflow-hidden !p-0 transition", eaten && "opacity-60")}
+      style={{ background: "radial-gradient(130% 55% at 0% 0%, var(--food-soft), transparent 65%), var(--card-hi), var(--surface)" }}
+    >
+      {/* Cabecera */}
+      <div className="relative flex items-start gap-3 p-4 pb-3">
+        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-surface text-[30px] shadow-sm">{r.emoji}</div>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+          <div className="truncate text-[11px] font-bold uppercase tracking-[0.06em] text-food">
             {label}
-            {time && ` · ${time}`}
+            {time && <span className="font-medium normal-case tracking-normal text-muted"> · {time}</span>}
           </div>
-          <div className="font-semibold leading-snug">{r.name}</div>
-          <div className="mt-0.5 text-xs text-muted">
-            {Math.round(meal.macros.kcal)} kcal · <span className="text-accent">{Math.round(meal.macros.protein)} g proteína</span> · {r.minutes} min
-          </div>
+          <div className="font-display text-[17px] font-bold leading-tight">{r.name}</div>
         </div>
         <button
           onClick={onToggle}
           className={cx(
-            "grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 transition",
-            eaten ? "border-accent bg-accent text-accent-ink" : "border-line",
+            "tap grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 transition",
+            eaten ? "grad pop border-transparent text-accent-ink" : "border-line-strong",
           )}
           aria-label={eaten ? "Desmarcar comida" : "Marcar como comida"}
         >
@@ -58,29 +59,43 @@ export function MealCard({
         </button>
       </div>
 
-      <p className="mt-2.5 text-sm text-fg/90">{r.summary}</p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
-        {mains.map((i) => {
-          const f = FOOD[i.food];
-          return (
-            <span key={i.food} className="rounded-lg bg-surface-3 px-2 py-1 text-xs text-muted">
-              {f.name.replace(/ \(.+\)/, "")}: <span className="text-fg">{formatQty(f, i.g * meal.scale)}</span>
-            </span>
-          );
-        })}
-      </div>
-      <div className="mt-3 flex gap-2">
-        <Link
-          href={`/recetas/${r.id}?porcion=${meal.scale}`}
-          className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl bg-accent text-sm font-semibold text-accent-ink"
-        >
-          <BookOpen className="h-4 w-4" /> Receta completa
-        </Link>
-        <Button size="sm" variant="secondary" onClick={() => setSwap(true)}>
-          <RefreshCw className="h-4 w-4" /> Cambiar
-        </Button>
+      <div className="flex flex-1 flex-col px-4 pb-4">
+        <div className="flex gap-2">
+          <Stat value={Math.round(meal.macros.kcal)} unit="kcal" />
+          <Stat value={Math.round(meal.macros.protein)} unit="g prot" accent />
+          <Stat value={r.minutes} unit="min" />
+        </div>
+        <p className="mt-3 text-[14px] leading-relaxed text-fg/85">{r.summary}</p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {mains.map((i) => {
+            const f = FOOD[i.food];
+            return (
+              <span key={i.food} className="rounded-full border border-line bg-surface-2 px-2.5 py-1 text-[12px] text-muted">
+                {f.name.replace(/ \(.+\)/, "")} · <span className="font-medium text-fg">{formatQty(f, i.g * meal.scale)}</span>
+              </span>
+            );
+          })}
+        </div>
+        <div className="flex-1" />
+        <div className="mt-4 flex gap-2">
+          <Link href={`/recetas/${r.id}?porcion=${meal.scale}`} className="tap grad glow inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-semibold text-accent-ink">
+            <BookOpen className="h-4 w-4" /> Receta completa
+          </Link>
+          <Button variant="secondary" className="!px-4" onClick={() => setSwap(true)} aria-label="Cambiar comida">
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <SwapSheet open={swap} onClose={() => setSwap(false)} meal={meal} weekday={weekday} />
+    </div>
+  );
+}
+
+function Stat({ value, unit, accent }: { value: number; unit: string; accent?: boolean }) {
+  return (
+    <div className={cx("flex-1 rounded-2xl px-3 py-2", accent ? "bg-accent-soft" : "bg-surface-2")}>
+      <div className={cx("font-display text-lg font-bold leading-none", accent && "text-accent-text")}>{value}</div>
+      <div className="mt-1 text-[11px] text-muted">{unit}</div>
     </div>
   );
 }

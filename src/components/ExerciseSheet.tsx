@@ -24,7 +24,7 @@ export function ExerciseInfo({ id, showLink = true }: { id: string; showLink?: b
           <ol className="space-y-1.5">
             {ex.steps.map((s, i) => (
               <li key={i} className="flex gap-2 text-sm">
-                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">{i + 1}</span>
+                <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-accent-soft text-[11px] font-bold text-accent-text">{i + 1}</span>
                 <span className="text-fg/90">{s}</span>
               </li>
             ))}
@@ -45,7 +45,7 @@ export function ExerciseInfo({ id, showLink = true }: { id: string; showLink?: b
       )}
       {ex.tip && <p className="rounded-xl bg-info/10 p-3 text-sm text-info">💡 {ex.tip}</p>}
       {showLink && (
-        <Link href={`/ejercicio/${id}`} className="block text-center text-sm text-accent">
+        <Link href={`/ejercicio/${id}`} className="block text-center text-sm text-accent-text">
           Ver historial y récords →
         </Link>
       )}

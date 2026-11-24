@@ -61,7 +61,7 @@ export default function Mas() {
           <div className="card divide-y divide-line !p-0">
             {g.items.map((i) => (
               <Link key={i.href} href={i.href} className="flex items-center gap-3 px-4 py-3 active:bg-surface-2">
-                <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent-soft text-accent">
+                <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent-soft text-accent-text">
                   <i.icon className="h-5 w-5" />
                 </div>
                 <div className="min-w-0 flex-1">

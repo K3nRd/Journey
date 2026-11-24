@@ -11,6 +11,8 @@ import { buildTimeline, buildWeeklyReminders, REMINDER_KINDS } from "@/lib/sched
 import { targets } from "@/lib/nutrition";
 import { dateKey, fmt12, DAY_NAMES, addDays } from "@/lib/date";
 import { Icon } from "@/components/Icon";
+import { JourneyPath } from "@/components/JourneyPath";
+import { Logo } from "@/components/Logo";
 import { enablePush, isAndroid, isIOS, isPushSupported, isStandalone, serverStatus } from "@/lib/push-client";
 import type { HabitId } from "@/lib/types";
 
@@ -66,7 +68,7 @@ export default function Onboarding() {
         )}
         <div className="flex flex-1 gap-1">
           {STEPS.map((_, i) => (
-            <div key={i} className={cx("h-1.5 flex-1 rounded-full", i <= step ? "bg-accent" : "bg-surface-3")} />
+            <div key={i} className={cx("h-1.5 flex-1 rounded-full transition-all duration-500", i <= step ? "grad" : "bg-surface-3")} />
           ))}
         </div>
         {onboarded ? (
@@ -77,15 +79,22 @@ export default function Onboarding() {
           <div className="w-8" />
         )}
       </div>
-      <p className="text-xs font-semibold uppercase tracking-wider text-accent">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-accent-text">
         Paso {step + 1} de {STEPS.length} · {STEPS[step]}
       </p>
 
       <div className="flex-1 py-3">
         {step === 0 && (
           <div className="space-y-5">
-            <div className="pt-6 text-5xl">👋</div>
-            <h1 className="text-3xl font-bold leading-tight">Tu transformación empieza aquí</h1>
+            <div className="pt-4">
+              <Logo />
+            </div>
+            <div className="card grad-soft p-5">
+              <JourneyPath start={p.startWeightLb} goal={p.goalWeightLb} current={p.startWeightLb + 0.0001} />
+            </div>
+            <h1 className="font-display text-[34px] font-bold leading-[1.05]">
+              Tu camino de <span className="grad-text">{p.startWeightLb} a {p.goalWeightLb}</span> empieza hoy.
+            </h1>
             <p className="text-muted">
               Te haré unas preguntas para armar tu rutina diaria, tu entrenamiento y tu menú. Todo se puede cambiar después en
               Ajustes.
@@ -104,7 +113,7 @@ export default function Onboarding() {
 
         {step === 1 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Tu cuerpo</h1>
+            <h1 className="font-display text-[28px] font-bold leading-tight">Tu cuerpo</h1>
             <p className="text-sm text-muted">Ya vienen tus datos. Confirma o corrige.</p>
             <Field label="Sexo">
               <Segmented value={p.sex} onChange={(v) => setProfile({ sex: v })} options={[{ value: "m", label: "Masculino" }, { value: "f", label: "Femenino" }]} />
@@ -140,7 +149,7 @@ export default function Onboarding() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Tu horario</h1>
+            <h1 className="font-display text-[28px] font-bold leading-tight">Tu horario</h1>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Me levanto a las">
                 <TimeInput value={p.wakeTime} onChange={(v) => setProfile({ wakeTime: v })} />
@@ -177,7 +186,7 @@ export default function Onboarding() {
 
         {step === 3 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Gimnasio</h1>
+            <h1 className="font-display text-[28px] font-bold leading-tight">Gimnasio</h1>
             <Field label="Días de gimnasio" hint="Las 5 rutinas se reparten en orden en los días que marques.">
               <DayPicker value={p.gymDays} onChange={(v) => setProfile({ gymDays: v })} />
             </Field>
@@ -211,7 +220,7 @@ export default function Onboarding() {
 
         {step === 4 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Alimentación</h1>
+            <h1 className="font-display text-[28px] font-bold leading-tight">Alimentación</h1>
             <Field label="¿Cuántas veces comes al día ahora?">
               <Segmented value={p.mealsBefore} onChange={(v) => setProfile({ mealsBefore: v })} options={[1, 2, 3, 4].map((n) => ({ value: n, label: `${n}` }))} />
             </Field>
@@ -254,7 +263,7 @@ export default function Onboarding() {
 
         {step === 5 && (
           <div className="space-y-4">
-            <h1 className="text-2xl font-bold">Tus hábitos</h1>
+            <h1 className="font-display text-[28px] font-bold leading-tight">Tus hábitos</h1>
             <p className="text-sm text-muted">Activa lo que quieras en tu checklist diario.</p>
             <Card className="divide-y divide-line !py-1">
               {HABITS.map((h) => (
@@ -338,7 +347,7 @@ function RemindersStep({ onEnable, enabled }: { onEnable: () => Promise<{ ok: bo
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Recordatorios</h1>
+      <h1 className="font-display text-[28px] font-bold leading-tight">Recordatorios</h1>
       <p className="text-sm text-muted">Te llegan al celular aunque la app esté cerrada y el teléfono bloqueado.</p>
 
       <Card className="divide-y divide-line !py-1">
@@ -443,16 +452,16 @@ function Summary({ overrides, setOverride }: { overrides: Record<string, string>
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Tu plan, {p.name || "campeón"}</h1>
+      <h1 className="font-display text-[28px] font-bold leading-tight">Tu plan, {p.name || "campeón"}</h1>
       <div className="grid grid-cols-2 gap-3">
         <Card>
           <div className="text-xs text-muted">Calorías diarias</div>
-          <div className="text-2xl font-bold">{t.kcal.toLocaleString("es-DO")}</div>
+          <div className="font-display text-3xl font-bold">{t.kcal.toLocaleString("es-DO")}</div>
           <div className="text-xs text-muted">gasto estimado {t.tdee.toLocaleString("es-DO")}</div>
         </Card>
         <Card>
           <div className="text-xs text-muted">Proteína diaria</div>
-          <div className="text-2xl font-bold">{t.protein}–{Math.round(t.protein * 1.2)} g</div>
+          <div className="font-display text-3xl font-bold text-accent-text">{t.protein}–{Math.round(t.protein * 1.2)}<span className="text-base"> g</span></div>
           <div className="text-xs text-muted">para conservar músculo</div>
         </Card>
       </div>
@@ -467,7 +476,7 @@ function Summary({ overrides, setOverride }: { overrides: Record<string, string>
         <Card className="divide-y divide-line !p-0">
           {tl.map((it) => (
             <div key={it.id} className="flex items-center gap-3 px-3 py-2">
-              <Icon name={it.icon} className="h-5 w-5 shrink-0 text-accent" />
+              <Icon name={it.icon} className="h-5 w-5 shrink-0 text-accent-text" />
               <div className="min-w-0 flex-1 truncate text-sm">{it.title}</div>
               <input
                 type="time"

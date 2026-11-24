@@ -2,15 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Journey · Mi transformación",
+    name: "Journey",
     short_name: "Journey",
     description: "Entrenamiento, nutrición y hábitos para tu transformación física.",
     start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#0b0f0e",
-    theme_color: "#0b0f0e",
+    background_color: "#07080a",
+    theme_color: "#07080a",
     lang: "es-DO",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

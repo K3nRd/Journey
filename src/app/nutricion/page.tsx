@@ -35,7 +35,7 @@ export default function Nutricion() {
           { href: "/registro", icon: NotebookPen, label: "Registro" },
         ].map((x) => (
           <Link key={x.href} href={x.href} className="card flex flex-col items-center gap-1 !p-2.5 text-center">
-            <x.icon className="h-5 w-5 text-accent" />
+            <x.icon className="h-5 w-5 text-accent-text" />
             <span className="text-xs font-medium">{x.label}</span>
           </Link>
         ))}
@@ -50,7 +50,7 @@ export default function Nutricion() {
               onClick={() => setSel(k)}
               className={cx(
                 "flex w-12 shrink-0 flex-col items-center rounded-2xl border py-2",
-                sel === k ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface",
+                sel === k ? "border-transparent grad text-accent-ink" : "border-line bg-surface",
                 k === today && sel !== k && "border-accent/60",
               )}
             >
@@ -71,7 +71,7 @@ export default function Nutricion() {
         <Bar value={tot.kcal / t.kcal} />
         <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
           <div>
-            <div className="text-base font-bold text-accent">{Math.round(tot.p)} g</div>
+            <div className="text-base font-bold text-accent-text">{Math.round(tot.p)} g</div>
             <div className="text-muted">proteína</div>
           </div>
           <div>
@@ -109,9 +109,9 @@ export default function Nutricion() {
       </div>
 
       <Card className="mt-4 flex items-start gap-3 text-sm text-muted">
-        <UtensilsCrossed className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
+        <UtensilsCrossed className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
         <p>
-          Agua: mínimo 8–10 vasos al día. Café sin azúcar está bien. Si un día comes fuera, regístralo en <Link href="/registro" className="text-accent">Registro → Comí fuera</Link> y
+          Agua: mínimo 8–10 vasos al día. Café sin azúcar está bien. Si un día comes fuera, regístralo en <Link href="/registro" className="text-accent-text">Registro → Comí fuera</Link> y
           sigue con normalidad en la próxima comida.
         </p>
       </Card>

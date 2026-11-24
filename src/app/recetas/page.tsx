@@ -163,7 +163,7 @@ export default function Recetas() {
                 {r.name}
               </div>
               <div className="text-xs text-muted">
-                {Math.round(m.kcal)} kcal · <span className="text-accent">{Math.round(m.protein)} g prot</span> · {r.minutes} min · RD${cost}
+                {Math.round(m.kcal)} kcal · <span className="text-accent-text">{Math.round(m.protein)} g prot</span> · {r.minutes} min · RD${cost}
               </div>
             </div>
             {mode === "tengo" && <Badge tone={cover === 1 ? "good" : "neutral"}>{Math.round(cover * 100)}%</Badge>}

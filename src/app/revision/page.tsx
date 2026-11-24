@@ -103,7 +103,7 @@ export default function Revision() {
                 <div className="font-semibold">Semana del {fmtDate(r.weekStart, false)}</div>
                 {r.good && <p>✅ {r.good}</p>}
                 {r.bad && <p>⚠️ {r.bad}</p>}
-                {r.change && <p className="text-accent">🎯 {r.change}</p>}
+                {r.change && <p className="text-accent-text">🎯 {r.change}</p>}
               </Card>
             ))}
           </div>

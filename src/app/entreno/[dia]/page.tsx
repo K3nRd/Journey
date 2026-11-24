@@ -99,7 +99,7 @@ export default function SessionPage() {
       {active && (
         <Card className="mb-3 border-warn/40 text-sm">
           Tienes otro entrenamiento sin terminar.{" "}
-          <button className="font-semibold text-accent" onClick={() => useApp.getState().discardWorkout(active.id)}>
+          <button className="font-semibold text-accent-text" onClick={() => useApp.getState().discardWorkout(active.id)}>
             Descartarlo
           </button>
         </Card>
@@ -377,7 +377,7 @@ function ActiveSession({
               <Stepper value={s.reps || 0} placeholder={String(defaultReps)} step={1} onChange={(v) => setField(si, "reps", v)} />
               <button
                 onClick={() => toggleSet(si)}
-                className={cx("grid h-11 w-11 place-items-center rounded-xl border-2", s.done ? "border-accent bg-accent text-accent-ink" : "border-line")}
+                className={cx("grid h-11 w-11 place-items-center rounded-xl border-2", s.done ? "border-transparent grad text-accent-ink" : "border-line")}
                 aria-label={s.done ? "Desmarcar serie" : "Completar serie"}
               >
                 <Check className="h-5 w-5" strokeWidth={3} />
@@ -520,7 +520,7 @@ function RestTimer({ end, onDone, onAdd }: { end: number; onDone: () => void; on
   const s = left % 60;
   return (
     <div className="safe-bottom fixed inset-x-0 bottom-16 z-30 px-4">
-      <div className={cx("mx-auto flex max-w-lg items-center gap-3 rounded-2xl border p-3 shadow-2xl", left === 0 ? "border-accent bg-accent text-accent-ink" : "border-line bg-surface")}>
+      <div className={cx("mx-auto flex max-w-lg items-center gap-3 rounded-2xl border p-3 shadow-2xl", left === 0 ? "border-transparent grad text-accent-ink" : "border-line bg-surface")}>
         <Timer className="h-6 w-6" />
         <div className="flex-1">
           <div className="text-xs opacity-70">{left === 0 ? "¡A la siguiente serie!" : "Descanso"}</div>
@@ -576,7 +576,7 @@ function Summary({ log, onClose }: { log: WorkoutLog; onClose: () => void }) {
       )}
       <Card className="mt-4 text-left text-sm text-muted">
         <div className="mb-1 flex items-center gap-2 font-semibold text-fg">
-          <Flame className="h-4 w-4 text-accent" /> Ahora
+          <Flame className="h-4 w-4 text-accent-text" /> Ahora
         </div>
         Cena post-entreno dentro de la próxima hora: proteína + carbohidrato. Tu receta de hoy está en el inicio.
       </Card>

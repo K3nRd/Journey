@@ -15,6 +15,7 @@ import {
   isAndroid,
   isStandalone,
   isPushSupported,
+  pushDiagnostics,
   type ServerStatus,
 } from "@/lib/push-client";
 import { PageHeader, Card, Button, Toggle, Segmented, SectionTitle, Badge, Field, Sheet, inputCls } from "@/components/ui";
@@ -33,6 +34,7 @@ export default function Ajustes() {
   useEffect(() => {
     serverStatus().then(setStatus);
     setEnv({ ios: isIOS(), android: isAndroid(), standalone: isStandalone(), supported: isPushSupported() });
+    setDiag(pushDiagnostics());
   }, []);
 
   const flash = (tone: "good" | "bad", text: string) => {
@@ -42,15 +44,43 @@ export default function Ajustes() {
 
   const timeline = buildTimeline(s.profile, dateKey(), { overrides: s.overrides });
 
+  const [pushMsg, setPushMsg] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
+  const [step, setStep] = useState<string | null>(null);
+  const [diag, setDiag] = useState<ReturnType<typeof pushDiagnostics>>(null);
+
   const turnOn = async () => {
+    setPushMsg(null);
     setBusy(true);
-    const r = await enablePush(s.deviceId, buildWeeklyReminders(s.profile, s.overrides));
-    if (r.ok) {
-      s.setPushEnabled(true);
-      s.setProfile({ remindersEnabled: true });
-      flash("good", "Recordatorios activados. Prueba con «Enviar prueba».");
-    } else flash("bad", r.error ?? "No se pudo activar.");
-    setBusy(false);
+    try {
+      const r = await enablePush(s.deviceId, buildWeeklyReminders(s.profile, s.overrides), setStep);
+      if (r.ok) {
+        s.setPushEnabled(true);
+        s.setProfile({ remindersEnabled: true });
+        setPushMsg({ tone: "good", text: "¡Recordatorios activados! Toca «Enviar prueba» y bloquea el teléfono." });
+      } else setPushMsg({ tone: "bad", text: r.error ?? "No se pudo activar." });
+    } finally {
+      setBusy(false);
+      setStep(null);
+      setDiag(pushDiagnostics());
+    }
+  };
+
+  const testPush = async () => {
+    setPushMsg(null);
+    setBusy(true);
+    try {
+      const r = await sendTestPush(s.deviceId);
+      setPushMsg(
+        r.ok
+          ? { tone: "good", text: "Enviada. Bloquea el teléfono: debe llegar en unos segundos." }
+          : { tone: "bad", text: r.error ?? "Falló el envío." },
+      );
+      if (!r.ok && /no está registrado/.test(r.error ?? "")) s.setPushEnabled(false);
+    } catch {
+      setPushMsg({ tone: "bad", text: "Sin conexión con el servidor. Inténtalo de nuevo." });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const exportFile = () => {
@@ -186,14 +216,8 @@ export default function Ajustes() {
         {status?.push &&
           (s.pushEnabled ? (
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="secondary"
-                onClick={async () => {
-                  const r = await sendTestPush(s.deviceId);
-                  flash(r.ok ? "good" : "bad", r.ok ? "Enviada. Bloquea el teléfono y espera unos segundos." : r.error ?? "Falló el envío.");
-                }}
-              >
-                <Send className="h-4 w-4" /> Enviar prueba
+              <Button variant="secondary" onClick={testPush} disabled={busy}>
+                <Send className="h-4 w-4" /> {busy ? "Enviando…" : "Enviar prueba"}
               </Button>
               <Button
                 variant="secondary"
@@ -207,10 +231,29 @@ export default function Ajustes() {
               </Button>
             </div>
           ) : (
-            <Button className="w-full" onClick={turnOn} disabled={busy || (env.ios && !env.supported)}>
-              <Bell className="h-4 w-4" /> {busy ? "Activando…" : "Activar recordatorios"}
+            <Button className="w-full" onClick={turnOn} disabled={busy}>
+              <Bell className="h-4 w-4" /> {busy ? step ?? "Activando…" : "Activar recordatorios"}
             </Button>
           ))}
+
+        {pushMsg && (
+          <p className={`rounded-xl p-3 text-sm ${pushMsg.tone === "good" ? "bg-good/12 text-good" : "bg-bad/12 text-bad"}`}>{pushMsg.text}</p>
+        )}
+
+        {diag && (
+          <details className="text-xs text-muted">
+            <summary className="cursor-pointer">Diagnóstico</summary>
+            <ul className="mt-2 space-y-0.5">
+              <li>App instalada (pantalla de inicio): {diag.instalada ? "sí" : "no"}</li>
+              <li>Service worker: {diag.serviceWorker ? "sí" : "no"}</li>
+              <li>Push disponible: {diag.pushManager ? "sí" : "no"}</li>
+              <li>Notificaciones disponibles: {diag.notificaciones ? "sí" : "no"}</li>
+              <li>Permiso: {diag.permiso}</li>
+              <li>Claves configuradas: {diag.clave ? "sí" : "no"}</li>
+              <li>Servidor: {status ? (status.push ? "listo" : "sin configurar") : "comprobando…"}</li>
+            </ul>
+          </details>
+        )}
 
         <div className="divide-y divide-line border-t border-line">
           {REMINDER_KINDS.map((k) => (

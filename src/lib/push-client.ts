@@ -51,39 +51,109 @@ export async function serverStatus(): Promise<ServerStatus> {
 
 const tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Santo_Domingo";
 
-export async function enablePush(deviceId: string, reminders: ServerReminder[]): Promise<{ ok: boolean; error?: string }> {
+function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
+  return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
+}
+
+/** Estado del teléfono para diagnosticar problemas con las notificaciones. */
+export function pushDiagnostics() {
+  if (typeof window === "undefined") return null;
+  return {
+    instalada: isStandalone(),
+    serviceWorker: "serviceWorker" in navigator,
+    pushManager: "PushManager" in window,
+    notificaciones: "Notification" in window,
+    permiso: "Notification" in window ? Notification.permission : "no disponible",
+    clave: Boolean(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY),
+  };
+}
+
+/**
+ * Activa las notificaciones paso a paso. Nunca lanza errores: siempre devuelve
+ * { ok } o { ok: false, error } con un mensaje claro del paso que falló.
+ */
+export async function enablePush(
+  deviceId: string,
+  reminders: ServerReminder[],
+  onStep?: (step: string) => void,
+): Promise<{ ok: boolean; error?: string }> {
   if (!isPushSupported()) {
     return {
       ok: false,
       error: isIOS()
-        ? "En iPhone primero añade la app a la pantalla de inicio (Compartir → Añadir a pantalla de inicio) y ábrela desde ahí."
-        : "Este navegador no permite notificaciones push.",
+        ? isStandalone()
+          ? "Tu iPhone no permite notificaciones web. Actualiza a iOS 16.4 o más reciente (Ajustes → General → Actualización de software)."
+          : "En iPhone primero añade la app a la pantalla de inicio (Safari → Compartir → Añadir a pantalla de inicio) y ábrela desde el ícono."
+        : "Este navegador no permite notificaciones push. Prueba con Chrome o Safari actualizados.",
     };
   }
   const key = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!key) return { ok: false, error: "La app todavía no tiene configuradas las claves de notificaciones (VAPID)." };
-  const perm = await Notification.requestPermission();
-  if (perm !== "granted") return { ok: false, error: "No diste permiso para notificaciones. Puedes activarlo en los ajustes del teléfono." };
-  const reg = (await navigator.serviceWorker.getRegistration()) ?? (await registerSW());
-  if (!reg) return { ok: false, error: "No se pudo registrar el service worker." };
-  await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(key),
-    });
+  if (!key) return { ok: false, error: "La app no tiene configuradas las claves de notificaciones (VAPID)." };
+
+  try {
+    // 1. Permiso (debe ser lo primero tras el toque, sin esperas antes)
+    onStep?.("Pidiendo permiso…");
+    const perm = await Notification.requestPermission();
+    if (perm === "denied")
+      return {
+        ok: false,
+        error: isIOS()
+          ? "Las notificaciones están bloqueadas. Ve a Ajustes del iPhone → Notificaciones → Journey → Permitir notificaciones, y vuelve a intentarlo."
+          : "Las notificaciones están bloqueadas para este sitio. Actívalas en la configuración del navegador.",
+      };
+    if (perm !== "granted") return { ok: false, error: "No se concedió el permiso. Toca de nuevo y elige «Permitir»." };
+
+    // 2. Service worker
+    onStep?.("Preparando el teléfono…");
+    let reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) reg = (await registerSW()) ?? undefined;
+    if (!reg) return { ok: false, error: "No se pudo preparar el servicio de notificaciones. Cierra la app por completo y vuelve a abrirla." };
+    reg = await withTimeout(navigator.serviceWorker.ready, 15000, "El servicio de notificaciones tardó demasiado en activarse. Cierra la app por completo y vuelve a abrirla.");
+
+    // 3. Suscripción con Apple / Google
+    onStep?.("Conectando con el servicio de notificaciones…");
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await withTimeout(
+        reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) }),
+        20000,
+        "Apple/Google no respondió. Revisa tu conexión a internet e inténtalo de nuevo.",
+      );
+    }
+
+    // 4. Registro en el servidor de Journey
+    onStep?.("Guardando tus recordatorios…");
+    const r = await withTimeout(
+      fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId, subscription: sub.toJSON(), timezone: tz(), reminders }),
+      }),
+      20000,
+      "El servidor no respondió. Inténtalo de nuevo en un momento.",
+    );
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      return { ok: false, error: `${j.error ?? "El servidor rechazó el registro."} (código ${r.status})` };
+    }
+    return { ok: true };
+  } catch (e) {
+    const name = (e as { name?: string })?.name ?? "";
+    const m = e instanceof Error ? e.message : String(e);
+    if (name === "NotAllowedError" || /permission denied/i.test(m))
+      return {
+        ok: false,
+        error: isIOS()
+          ? "El iPhone no permitió las notificaciones. Ve a Ajustes del iPhone → Notificaciones → Journey → activa «Permitir notificaciones», y vuelve a intentarlo."
+          : "El navegador no permitió las notificaciones. Actívalas para este sitio en la configuración del navegador.",
+      };
+    if (name === "AbortError" || /push service/i.test(m))
+      return { ok: false, error: "No se pudo conectar con el servicio de notificaciones de Apple/Google. Revisa tu internet e inténtalo de nuevo." };
+    if (name === "InvalidStateError")
+      return { ok: false, error: "Cierra la app por completo (desliza hacia arriba) y vuelve a abrirla desde el ícono." };
+    if (/fetch|network|load failed/i.test(m)) return { ok: false, error: "Sin conexión con el servidor. Revisa tu internet e inténtalo de nuevo." };
+    return { ok: false, error: `No se pudo activar: ${m || "error desconocido"}` };
   }
-  const r = await fetch("/api/push/subscribe", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ deviceId, subscription: sub.toJSON(), timezone: tz(), reminders }),
-  });
-  if (!r.ok) {
-    const j = await r.json().catch(() => ({}));
-    return { ok: false, error: j.error ?? "El servidor no respondió." };
-  }
-  return { ok: true };
 }
 
 export async function disablePush(deviceId: string) {

@@ -20,11 +20,13 @@ import {
   Sunrise,
   Utensils,
   Circle,
+  Coffee,
   type LucideProps,
 } from "lucide-react";
 
 const MAP = {
   Apple,
+  Coffee,
   BedDouble,
   Briefcase,
   Camera,

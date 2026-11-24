@@ -16,6 +16,7 @@ import { PHASE_INFO, sessionExercises } from "@/lib/workout";
 import { toggleItem } from "@/lib/actions";
 import { streak } from "@/lib/progress";
 import { InstallBanner } from "@/components/InstallBanner";
+import { GUIDE } from "@/data/guide";
 import type { TimelineItem } from "@/lib/types";
 
 const KIND_TONE: Record<TimelineItem["kind"], "accent" | "food" | "violet" | "info" | "neutral"> = {
@@ -229,6 +230,9 @@ export default function Dashboard() {
       {/* Entrenamiento */}
       <SectionTitle action={<Link href="/entreno" className="text-[13px] font-semibold text-accent-text">Semana →</Link>}>Tu entrenamiento</SectionTitle>
       <WorkoutCard day={day} />
+
+      {/* Dato del día */}
+      <DailyTip dayKey={day.key} />
 
       {/* Cómo te sientes */}
       <SectionTitle>¿Cómo te sientes?</SectionTitle>
@@ -527,5 +531,24 @@ function QuickMetrics({ dayKey }: { dayKey: string }) {
         />
       </div>
     </Card>
+  );
+}
+
+function DailyTip({ dayKey }: { dayKey: string }) {
+  const all = GUIDE.flatMap((s) => s.items);
+  const n = dayKey.split("-").reduce((a, x) => a + Number(x), 0);
+  const tip = all[n % all.length];
+  return (
+    <Link href="/guia" className="tap card mt-8 flex items-center gap-3 !p-4">
+      <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-surface-2 text-2xl">{tip.emoji}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-accent-text">Dato del día</span>
+        <span className="block text-[15px] font-semibold leading-snug">
+          {tip.title}: {tip.number}
+        </span>
+        <span className="mt-0.5 line-clamp-2 block text-[12px] text-muted">{tip.how}</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+    </Link>
   );
 }

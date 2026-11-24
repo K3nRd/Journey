@@ -113,6 +113,7 @@ body {
 }
 
 body {
+  overflow-x: clip;
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: none;

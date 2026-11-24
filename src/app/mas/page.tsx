@@ -15,6 +15,7 @@ import {
   BookOpen,
   Search,
   ChevronRight,
+  FlaskConical,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui";
 
@@ -40,6 +41,7 @@ const GROUPS = [
   {
     title: "Entreno y vida",
     items: [
+      { href: "/guia", icon: FlaskConical, label: "Guía de salud", desc: "Lo que dice la ciencia, en simple" },
       { href: "/entreno/ejercicios", icon: BookOpen, label: "Biblioteca de ejercicios", desc: "Técnica, fotos y récords" },
       { href: "/entreno/discos", icon: Calculator, label: "Calculadora de discos", desc: "Qué poner en la barra" },
       { href: "/desconectar", icon: Sofa, label: "Ideas para desconectar", desc: "Equilibrio fuera del trabajo" },

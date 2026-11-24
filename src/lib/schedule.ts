@@ -156,13 +156,14 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     walkMin = ws + Math.round((we - ws) / 2 / 30) * 30;
     if (h.pausas) {
       let n = 1;
-      for (let t = ws + 120; t < we - 30; t += 120) {
-        if (Math.abs(t - walkMin) < 50) continue;
+      // La evidencia favorece moverse cada 30–60 min; avisamos cada 90 para no saturar
+      for (let t = ws + 90; t < we - 30; t += 90) {
+        if (Math.abs(t - walkMin) < 45) continue;
         add({
           id: `pausa-${n++}`,
           min: t,
           title: "Pausa activa + agua",
-          desc: "Levántate 3–5 minutos, estira y toma un vaso de agua.",
+          desc: "Levántate 3–5 min, camina y toma agua. Ideal: muévete un poco cada 30–60 min.",
           kind: "break",
           icon: "PersonStanding",
           checkable: true,
@@ -307,6 +308,21 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
       checkable: true,
       remind: true,
       reminderKind: "seguimiento",
+    });
+  }
+
+  // La cafeína hasta 6 h antes de dormir ya quita sueño: avisamos 8 h antes
+  if (h.sueno || h.telefono) {
+    add({
+      id: "ultimo-cafe",
+      min: sleep - 8 * 60,
+      title: "Último café del día",
+      desc: "Después de esta hora, nada de café, té negro, cola ni energizantes.",
+      kind: "habit",
+      icon: "Coffee",
+      checkable: false,
+      remind: true,
+      reminderKind: "sueno",
     });
   }
 

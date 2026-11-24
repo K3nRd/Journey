@@ -10,7 +10,7 @@ const TABS = [
   { href: "/entreno", label: "Entreno", icon: Dumbbell, match: (p: string) => p.startsWith("/entreno") || p.startsWith("/ejercicio") },
   { href: "/nutricion", label: "Comida", icon: UtensilsCrossed, match: (p: string) => p.startsWith("/nutricion") || p.startsWith("/recetas") || p.startsWith("/registro") },
   { href: "/progreso", label: "Progreso", icon: TrendingUp, match: (p: string) => p.startsWith("/progreso") || p.startsWith("/revision") },
-  { href: "/mas", label: "Más", icon: LayoutGrid, match: (p: string) => ["/mas", "/ajustes", "/desconectar", "/gastos"].some((x) => p.startsWith(x)) },
+  { href: "/mas", label: "Más", icon: LayoutGrid, match: (p: string) => ["/mas", "/ajustes", "/desconectar", "/gastos", "/guia"].some((x) => p.startsWith(x)) },
 ];
 
 /** Barra flotante tipo "píldora" con efecto vidrio. */

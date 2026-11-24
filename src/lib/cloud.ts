@@ -10,7 +10,6 @@ import { dateKey } from "./date";
 interface Config {
   supabaseUrl: string | null;
   publishableKey: string | null;
-  google: boolean;
 }
 
 let configPromise: Promise<Config> | null = null;
@@ -20,7 +19,7 @@ function loadConfig(): Promise<Config> {
   if (!configPromise) {
     configPromise = fetch("/api/config")
       .then((r) => r.json() as Promise<Config>)
-      .catch(() => ({ supabaseUrl: null, publishableKey: null, google: false }));
+      .catch(() => ({ supabaseUrl: null, publishableKey: null }));
   }
   return configPromise;
 }
@@ -33,8 +32,7 @@ export async function getClient(): Promise<SupabaseClient | null> {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
-      flowType: "pkce",
+      detectSessionInUrl: false,
       storageKey: "journey-auth",
     },
   });
@@ -48,11 +46,10 @@ export type AuthStatus = "loading" | "unconfigured" | "signedOut" | "syncing" | 
 interface AuthState {
   status: AuthStatus;
   user: User | null;
-  google: boolean;
   syncError: string | null;
 }
 
-export const useAuth = create<AuthState>(() => ({ status: "loading", user: null, google: false, syncError: null }));
+export const useAuth = create<AuthState>(() => ({ status: "loading", user: null, syncError: null }));
 
 let started = false;
 
@@ -60,13 +57,11 @@ let started = false;
 export async function initAuth() {
   if (started) return;
   started = true;
-  const cfg = await loadConfig();
   const sb = await getClient();
   if (!sb) {
-    useAuth.setState({ status: "unconfigured", google: false });
+    useAuth.setState({ status: "unconfigured" });
     return;
   }
-  useAuth.setState({ google: cfg.google });
   const { data } = await sb.auth.getSession();
   if (data.session?.user) await onSignedIn(data.session.user);
   else useAuth.setState({ status: "signedOut", user: null });
@@ -182,7 +177,6 @@ const MESSAGES: [RegExp, string][] = [
   [/unable to validate email|invalid email|email address .* is invalid/i, "Ese correo no es válido."],
   [/email not confirmed/i, "Tu correo no está confirmado. Pídele al administrador que active tu cuenta."],
   [/rate limit|too many/i, "Demasiados intentos. Espera unos minutos."],
-  [/provider is not enabled|unsupported provider/i, "El inicio con Google todavía no está activado."],
   [/fetch|network/i, "Sin conexión. Revisa tu internet."],
 ];
 
@@ -201,16 +195,6 @@ export async function signIn(email: string, password: string) {
   const sb = await getClient();
   if (!sb) return { error: "El servidor de cuentas no está configurado." };
   const { error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
-  return { error: error ? es(error.message) : null };
-}
-
-export async function signInWithGoogle() {
-  const sb = await getClient();
-  if (!sb) return { error: "El servidor de cuentas no está configurado." };
-  const { error } = await sb.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: `${window.location.origin}/auth/callback` },
-  });
   return { error: error ? es(error.message) : null };
 }
 

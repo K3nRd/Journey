@@ -138,7 +138,7 @@ export default function Ajustes() {
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium">{user.email}</div>
                 <div className="text-xs text-muted">
-                  {user.app_metadata?.provider === "google" ? "Con Google" : "Con correo y contraseña"}
+                  Correo y contraseña
                   {s.lastSyncAt ? ` · guardado ${new Date(s.lastSyncAt).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" })}` : ""}
                 </div>
               </div>

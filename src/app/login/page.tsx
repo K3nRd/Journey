@@ -6,16 +6,15 @@ import { Eye, EyeOff, Loader2, Lock, Mail } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { JourneyPath } from "@/components/JourneyPath";
 import { Button, Segmented, cx, inputCls } from "@/components/ui";
-import { signIn, signInWithGoogle, signUp, useAuth } from "@/lib/cloud";
+import { signIn, signUp, useAuth } from "@/lib/cloud";
 
 export default function Login() {
-  const google = useAuth((s) => s.google);
   const status = useAuth((s) => s.status);
   const [mode, setMode] = useState<"entrar" | "crear">("crear");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
-  const [busy, setBusy] = useState<"form" | "google" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forgot, setForgot] = useState(false);
 
@@ -28,20 +27,10 @@ export default function Login() {
     if (!validEmail) return setError("Escribe un correo válido.");
     if (mode === "crear" && !strong) return setError("La contraseña debe tener al menos 8 caracteres, con letras y números.");
     if (mode === "entrar" && !password) return setError("Escribe tu contraseña.");
-    setBusy("form");
+    setBusy(true);
     const r = mode === "crear" ? await signUp(email, password) : await signIn(email, password);
-    setBusy(null);
+    setBusy(false);
     if (r.error) setError(r.error);
-  };
-
-  const withGoogle = async () => {
-    setError(null);
-    setBusy("google");
-    const r = await signInWithGoogle();
-    if (r.error) {
-      setError(r.error);
-      setBusy(null);
-    }
   };
 
   if (status === "unconfigured") {
@@ -88,24 +77,7 @@ export default function Login() {
         />
       </div>
 
-      {google && (
-        <>
-          <button
-            type="button"
-            onClick={withGoogle}
-            disabled={busy !== null}
-            className="tap mt-4 flex h-[52px] w-full items-center justify-center gap-3 rounded-full border border-line-strong bg-surface font-medium disabled:opacity-50"
-          >
-            {busy === "google" ? <Loader2 className="h-5 w-5 animate-spin" /> : <GoogleIcon />}
-            Continuar con Google
-          </button>
-          <div className="my-4 flex items-center gap-3 text-xs text-muted">
-            <div className="h-px flex-1 bg-line" /> o con tu correo <div className="h-px flex-1 bg-line" />
-          </div>
-        </>
-      )}
-
-      <form onSubmit={submit} className={cx("space-y-3", !google && "mt-4")}>
+      <form onSubmit={submit} className="mt-4 space-y-3">
         <label className="relative block">
           <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted" />
           <input
@@ -146,8 +118,8 @@ export default function Login() {
 
         {error && <p className="rounded-xl bg-bad/12 p-3 text-sm text-bad">{error}</p>}
 
-        <Button type="submit" size="lg" className="w-full" disabled={busy !== null}>
-          {busy === "form" && <Loader2 className="h-5 w-5 animate-spin" />}
+        <Button type="submit" size="lg" className="w-full" disabled={busy}>
+          {busy && <Loader2 className="h-5 w-5 animate-spin" />}
           {mode === "crear" ? "Crear cuenta" : "Entrar"}
         </Button>
       </form>
@@ -160,7 +132,6 @@ export default function Login() {
       {forgot && (
         <p className="mt-2 rounded-xl bg-surface-2 p-3 text-sm text-muted">
           Durante la beta, escríbele a la persona que te invitó a Journey para que restablezca tu contraseña.
-          {google && " Si creaste la cuenta con Google, usa «Continuar con Google»."}
         </p>
       )}
 
@@ -176,13 +147,3 @@ export default function Login() {
   );
 }
 
-function GoogleIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden>
-      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
-      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
-      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
-      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z" />
-    </svg>
-  );
-}

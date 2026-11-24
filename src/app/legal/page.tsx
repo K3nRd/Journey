@@ -24,7 +24,7 @@ export default function Legal() {
       <Card className="mt-3 space-y-2 text-sm leading-relaxed text-fg/85">
         <h2 className="font-display text-lg font-bold text-fg">Privacidad</h2>
         <p>
-          <b className="text-fg">Tu cuenta:</b> tu correo (o tu cuenta de Google) y una copia de tus datos de Journey —perfil, respuestas de
+          <b className="text-fg">Tu cuenta:</b> tu correo y una copia de tus datos de Journey —perfil, respuestas de
           salud, registros de peso, comida, sueño y entrenamientos— se guardan en nuestro servidor (Supabase) para que no los pierdas al
           cambiar de teléfono. Solo tú puedes leerlos con tu sesión iniciada.
         </p>

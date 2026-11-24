@@ -10,7 +10,7 @@ import { buildWeeklyReminders } from "@/lib/schedule";
 import { dateKey } from "@/lib/date";
 import { BottomNav } from "./BottomNav";
 
-const PUBLIC = ["/login", "/legal", "/auth/callback"];
+const PUBLIC = ["/login", "/legal"];
 
 export function Providers({ children }: { children: ReactNode }) {
   const hydrated = useHydrated();
@@ -58,7 +58,7 @@ export function Providers({ children }: { children: ReactNode }) {
       if (!publicPage) router.replace("/login");
       return;
     }
-    if (pathname === "/login" || pathname === "/auth/callback") {
+    if (pathname === "/login") {
       router.replace("/");
       return;
     }
@@ -83,7 +83,7 @@ export function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  const showNav = onboarded && auth !== "signedOut" && !["/onboarding", "/legal", "/salud", "/login", "/auth/callback"].includes(pathname);
+  const showNav = onboarded && auth !== "signedOut" && !["/onboarding", "/legal", "/salud", "/login"].includes(pathname);
   return (
     <>
       <main className={showNav ? "mx-auto max-w-lg px-4 pb-28" : "mx-auto max-w-lg px-4 pb-10"}>{children}</main>

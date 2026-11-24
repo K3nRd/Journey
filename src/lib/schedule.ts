@@ -1,7 +1,7 @@
 import type { MealSlot, Profile, TimelineItem } from "./types";
 import { goalOf, mealsPerDay, slotLabel, slotsFor } from "./meals";
 import { fromMin, toMin, daysBetween, dateKey, parseKey } from "./date";
-import { sessionForDate } from "./workout";
+import { phaseFor, sessionForDate, sessionPlan } from "./workout";
 
 export const REMINDER_KINDS: { id: string; label: string; desc: string }[] = [
   { id: "habitos", label: "Hábitos", desc: "Despertar, agua, organizar, desconectar" },
@@ -271,7 +271,14 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
       min: gym,
       end: fromMin(gymEnd),
       title: `Gimnasio: ${session.title}`,
-      desc: "Calentamiento, entrenamiento y estiramiento.",
+      desc: (() => {
+        const tp = sessionPlan(session, phaseFor(p, key), p.gymDurationMin);
+        return tp.short
+          ? "Sesión corta: calentamiento, ejercicios principales y estiramiento."
+          : tp.cardioMin > 0
+            ? `Calentamiento, pesas, ${tp.cardioMin} min de cardio zona 2 y estiramiento.`
+            : "Calentamiento, entrenamiento y estiramiento.";
+      })(),
       kind: "gym",
       icon: "Dumbbell",
       href: "/entreno/hoy",

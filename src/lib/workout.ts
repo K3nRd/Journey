@@ -261,3 +261,50 @@ export function hrZones(age: number) {
     ],
   };
 }
+
+// ── Duración de la sesión ────────────────────────────────
+export const DURATION_OPTIONS = [30, 45, 60, 75, 90, 105, 120, 150, 180];
+
+export const fmtMinutes = (m: number) => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} min` : ""}`);
+
+const WARMUP_MIN = 10;
+const COOLDOWN_MIN = 5;
+
+/** Minutos que toman los ejercicios de fuerza (≈40 s por serie + descanso + cambio de máquina). */
+export function liftingMinutes(list: PlanExercise[]) {
+  const sec = list.reduce((a, e) => a + e.sets * (40 + e.restSec) + 60, 0);
+  return Math.round(sec / 60);
+}
+
+export type SessionMode = "express" | "corta" | "completa" | "extendida";
+
+/**
+ * Cómo se reparte el tiempo que tienes (lo que haría un entrenador):
+ * - Poco tiempo: solo ejercicios principales (y con menos series si es muy poco).
+ * - Pasados ~75–90 min de pesas rinde poco seguir: el tiempo extra va a cardio zona 2.
+ * - Con 2 h o más: +1 serie en los ejercicios principales, cardio y un bloque de movilidad y abdomen.
+ */
+export function sessionPlan(day: DayPlan, phase: Phase, durationMin: number) {
+  const full = sessionExercises(day, phase, false);
+  const keyOnly = sessionExercises(day, phase, true);
+  const time = (l: PlanExercise[], warm = WARMUP_MIN) => warm + liftingMinutes(l) + COOLDOWN_MIN;
+
+  let mode: SessionMode = "completa";
+  let exercises = full;
+  if (durationMin < time(keyOnly) - 5) {
+    mode = "express";
+    exercises = keyOnly.map((e) => ({ ...e, sets: Math.min(e.sets, 2) }));
+  } else if (durationMin < time(full) - 10) {
+    mode = "corta";
+    exercises = keyOnly;
+  } else if (durationMin >= 120 && phase === "normal") {
+    mode = "extendida";
+    exercises = full.map((e) => (e.key && e.sets > 1 ? { ...e, sets: e.sets + 1 } : e));
+  }
+  const estimated = time(exercises, mode === "express" ? 5 : WARMUP_MIN);
+  let rest = Math.max(0, durationMin - estimated);
+  const cardioMin = rest >= 10 ? Math.min(Math.floor(rest / 5) * 5, mode === "extendida" ? 75 : 60) : 0;
+  rest -= cardioMin;
+  const mobilityMin = mode === "extendida" && rest >= 10 ? Math.min(Math.floor(rest / 5) * 5, 20) : 0;
+  return { mode, exercises, short: mode === "express" || mode === "corta", estimated, cardioMin, mobilityMin, total: estimated + cardioMin + mobilityMin };
+}

@@ -35,10 +35,17 @@ import {
   prsIn,
   isBarbell,
   warmupSets,
+  sessionPlan,
+  liftingMinutes,
+  DURATION_OPTIONS,
+  fmtMinutes,
+  hrZones,
   volume,
 } from "@/lib/workout";
 import { toggleItem } from "@/lib/actions";
 import type { WorkoutLog } from "@/lib/types";
+
+const MODE_LABEL = { express: "Express", corta: "Sesión corta", completa: "Sesión completa", extendida: "Sesión extendida (+1 serie en los principales)" } as const;
 
 export default function SessionPage() {
   const params = useParams<{ dia: string }>();
@@ -49,7 +56,7 @@ export default function SessionPage() {
   const workouts = useApp((s) => s.workouts);
   const activeId = useApp((s) => s.activeWorkoutId);
   const active = workouts.find((w) => w.id === activeId && !w.finishedAt);
-  const [short, setShort] = useState(false);
+  const [shortPick, setShort] = useState<boolean | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [summary, setSummary] = useState<WorkoutLog | null>(null);
   const phase = phaseFor(profile, today);
@@ -74,7 +81,13 @@ export default function SessionPage() {
     );
   }
 
-  const list = sessionExercises(plan, phase, short);
+  const timePlan = sessionPlan(plan, phase, profile.gymDurationMin);
+  const manual = shortPick !== null && plan.type === "fuerza";
+  const short = manual ? shortPick : plan.type === "fuerza" && timePlan.short;
+  const list = plan.type !== "fuerza" ? sessionExercises(plan, phase, false) : manual ? sessionExercises(plan, phase, short) : timePlan.exercises;
+  const cardioMin = plan.type === "fuerza" && !manual ? timePlan.cardioMin : 0;
+  const mobilityMin = plan.type === "fuerza" && !manual ? timePlan.mobilityMin : 0;
+  const hr = hrZones(profile.age);
   const start = () => {
     const w: WorkoutLog = {
       id: uid(),
@@ -112,8 +125,34 @@ export default function SessionPage() {
         </div>
         <p className="mt-1.5 text-sm text-muted">{PHASE_INFO[phase].desc}</p>
         {plan.type === "fuerza" && (
-          <div className="mt-2 border-t border-line pt-1">
-            <Toggle checked={short} onChange={setShort} label="Sesión corta (~45 min)" desc="Solo los ejercicios principales" />
+          <div className="mt-2 space-y-2 border-t border-line pt-2">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-medium">Tiempo que tienes hoy</div>
+                <div className="text-xs text-muted">
+                  {manual ? (short ? "Sesión corta elegida" : "Sesión completa elegida") : MODE_LABEL[timePlan.mode]}: pesas ≈
+                  {fmtMinutes(manual ? liftingMinutes(list) + 15 : timePlan.estimated)}
+                  {cardioMin > 0 && ` + ${cardioMin} min cardio`}
+                  {mobilityMin > 0 && ` + ${mobilityMin} min movilidad`}
+                </div>
+              </div>
+              <select
+                className="h-10 rounded-xl border border-line bg-surface-2 px-2 text-[16px]"
+                value={profile.gymDurationMin}
+                onChange={(e) => {
+                  setShort(null);
+                  useApp.getState().setProfile({ gymDurationMin: Number(e.target.value) });
+                }}
+                aria-label="Duración del entrenamiento"
+              >
+                {DURATION_OPTIONS.map((m) => (
+                  <option key={m} value={m}>
+                    {fmtMinutes(m)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <Toggle checked={short} onChange={setShort} label="Sesión corta" desc="Solo los ejercicios principales" />
           </div>
         )}
       </Card>
@@ -163,9 +202,34 @@ export default function SessionPage() {
         })}
       </div>
 
+      {cardioMin > 0 && (
+        <>
+          <SectionTitle>{plan.warmup.length ? "3 · " : ""}Cardio zona 2 ({cardioMin} min)</SectionTitle>
+          <Card className="space-y-1.5 text-sm">
+            <p>
+              Caminadora inclinada, bicicleta, elíptica o escaladora a ritmo constante: <b>{hr.zones[0].range} latidos/min</b> (puedes
+              conversar con frases completas).
+            </p>
+            <p className="text-xs text-muted">
+              Va después de las pesas para no cansarte antes de levantar. Mejora tu corazón y ayuda a quemar grasa sin afectar tu recuperación.
+            </p>
+          </Card>
+        </>
+      )}
+
+      {mobilityMin > 0 && (
+        <>
+          <SectionTitle>{cardioMin > 0 ? "4 · " : "3 · "}Movilidad y abdomen ({mobilityMin} min)</SectionTitle>
+          <Card className="space-y-1 text-sm">
+            <p>2–3 vueltas, 45 s cada ejercicio con 15 s de pausa:</p>
+            <p className="text-muted">Plancha · Dead bug · Puente de glúteo · Gato-camello · Círculos de cadera · Estiramiento de flexor de cadera</p>
+          </Card>
+        </>
+      )}
+
       {plan.cooldown.length > 0 && (
         <>
-          <SectionTitle>{plan.warmup.length ? "3 · " : ""}Estiramiento final (5 min)</SectionTitle>
+          <SectionTitle>{plan.warmup.length ? `${3 + (cardioMin > 0 ? 1 : 0) + (mobilityMin > 0 ? 1 : 0)} · ` : ""}Estiramiento final (5 min)</SectionTitle>
           <div className="grid grid-cols-2 gap-2">
             {plan.cooldown.map((w) => (
               <button key={w.exId} onClick={() => setInfo(w.exId)} className="card overflow-hidden !p-0 text-left">
@@ -179,7 +243,7 @@ export default function SessionPage() {
           </div>
         </>
       )}
-      {plan.cardioFinisher && <p className="mt-3 text-center text-xs text-muted">Extra: {plan.cardioFinisher}</p>}
+      {plan.cardioFinisher && cardioMin === 0 && <p className="mt-3 text-center text-xs text-muted">Extra: {plan.cardioFinisher}</p>}
 
       <div className="safe-bottom sticky bottom-20 z-10 mt-5">
         <Button size="lg" className="w-full shadow-lg" onClick={start}>

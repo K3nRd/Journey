@@ -50,9 +50,11 @@ export function bmr(p: Pick<Profile, "sex" | "age" | "heightCm">, weightLb: numb
   return p.sex === "m" ? base + 5 : base - 161;
 }
 
-export function activityFactor(p: Pick<Profile, "workType" | "gymDays">) {
+export function activityFactor(p: Pick<Profile, "workType" | "gymDays"> & { gymDurationMin?: number }) {
   const base = p.workType === "sentado" ? 1.2 : p.workType === "mixto" ? 1.3 : 1.4;
-  return base + 0.035 * p.gymDays.length;
+  // 0.035 por día para una sesión de ~90 min; más tiempo (con cardio) gasta más, con tope
+  const dur = Math.min(1.8, Math.max(0.5, (p.gymDurationMin ?? 90) / 90));
+  return base + 0.035 * p.gymDays.length * dur;
 }
 
 export function tdee(p: Profile, weightLb: number) {

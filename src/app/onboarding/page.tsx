@@ -7,6 +7,7 @@ import { useApp } from "@/lib/store";
 import { Button, Card, Chip, Field, Segmented, Toggle, Badge, inputCls, cx } from "@/components/ui";
 import { DayPicker, HeightInput, NumInput, TimeInput } from "@/components/forms";
 import { EXCLUDABLE, PANTRY_CHOICES } from "@/data/foods";
+import { DURATION_OPTIONS, fmtMinutes } from "@/lib/workout";
 import { buildTimeline, buildWeeklyReminders, REMINDER_KINDS } from "@/lib/schedule";
 import { menuForDay, targets } from "@/lib/nutrition";
 import { GOAL_INFO } from "@/lib/meals";
@@ -303,16 +304,26 @@ export default function Onboarding() {
               <Field label="Llego al gym a las">
                 <TimeInput value={p.gymTime} onChange={(v) => setProfile({ gymTime: v })} />
               </Field>
-              <Field label="Duración">
+              <Field label="Tiempo para entrenar">
                 <select className={inputCls} value={p.gymDurationMin} onChange={(e) => setProfile({ gymDurationMin: Number(e.target.value) })}>
-                  {[45, 60, 75, 90].map((m) => (
+                  {DURATION_OPTIONS.map((m) => (
                     <option key={m} value={m}>
-                      {m} min
+                      {fmtMinutes(m)}
                     </option>
                   ))}
                 </select>
               </Field>
             </div>
+            <p className="-mt-2 text-xs text-muted">
+              {p.gymDurationMin <= 45
+                ? "Con poco tiempo hacemos la sesión corta: solo los ejercicios principales."
+                : p.gymDurationMin <= 90
+                  ? "Tiempo ideal: calentamiento, pesas completas y estiramiento."
+                  : p.gymDurationMin < 120
+                    ? "El tiempo extra se convierte en cardio de zona 2 al final: más de 75–90 min de pesas rinde poco."
+                    : "Sesión extendida: +1 serie en los ejercicios principales, cardio de zona 2 y un bloque de movilidad y abdomen."}
+              {p.gymDurationMin > 120 && " Con sesiones tan largas, duerme 7–9 h, come suficiente y respeta los días de descanso."}
+            </p>
             <Card className="!p-2">
               <Toggle
                 checked={p.saturdayCardio}

@@ -1,6 +1,7 @@
 "use client";
 
 import type { ServerReminder } from "./schedule";
+import { authHeaders } from "./cloud";
 
 export const isPushSupported = () =>
   typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
@@ -136,7 +137,7 @@ export async function enablePush(
     const r = await withTimeout(
       fetch("/api/push/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
         body: JSON.stringify({ deviceId, subscription: sub.toJSON(), timezone: tz(), reminders }),
       }),
       20000,
@@ -172,7 +173,7 @@ export async function disablePush(deviceId: string) {
   } catch {}
   await fetch("/api/push/unsubscribe", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ deviceId }),
   }).catch(() => {});
 }
@@ -180,7 +181,7 @@ export async function disablePush(deviceId: string) {
 export async function syncReminders(deviceId: string, reminders: ServerReminder[]) {
   const r = await fetch("/api/push/reminders", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ deviceId, timezone: tz(), reminders }),
   }).catch(() => null);
   if (!r?.ok) return false;
@@ -210,7 +211,7 @@ export async function fetchDoneRemote(deviceId: string, date: string): Promise<s
 export async function sendTestPush(deviceId: string) {
   const r = await fetch("/api/push/test", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify({ deviceId }),
   });
   const j = await r.json().catch(() => ({}));

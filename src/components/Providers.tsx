@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useApp, exportableState } from "@/lib/store";
+import { useApp } from "@/lib/store";
+import { initAuth, startAutoSync, useAuth } from "@/lib/cloud";
 import { useHydrated } from "@/lib/hooks";
 import { registerSW, syncReminders, fetchDoneRemote } from "@/lib/push-client";
 import { buildWeeklyReminders } from "@/lib/schedule";
 import { dateKey } from "@/lib/date";
 import { BottomNav } from "./BottomNav";
+
+const PUBLIC = ["/login", "/legal", "/auth/callback"];
 
 export function Providers({ children }: { children: ReactNode }) {
   const hydrated = useHydrated();
@@ -37,27 +40,50 @@ export function Providers({ children }: { children: ReactNode }) {
     registerSW();
   }, []);
 
-  // Preguntas iniciales y cuestionario de salud obligatorio
-  const healthDone = useApp((s) => Boolean(s.profile.health?.disclaimerAcceptedAt));
+  // Sesión: arranca una vez que los datos locales están listos
+  const auth = useAuth((s) => s.status);
   useEffect(() => {
-    if (!hydrated || pathname === "/onboarding" || pathname === "/legal") return;
+    if (!hydrated) return;
+    initAuth();
+    return startAutoSync();
+  }, [hydrated]);
+
+  // Login obligatorio → preguntas iniciales → cuestionario de salud
+  const healthDone = useApp((s) => Boolean(s.profile.health?.disclaimerAcceptedAt));
+  const publicPage = PUBLIC.includes(pathname);
+  const ready = hydrated && auth !== "loading" && auth !== "syncing";
+  useEffect(() => {
+    if (!ready) return;
+    if (auth === "signedOut") {
+      if (!publicPage) router.replace("/login");
+      return;
+    }
+    if (pathname === "/login" || pathname === "/auth/callback") {
+      router.replace("/");
+      return;
+    }
+    if (pathname === "/onboarding" || pathname === "/legal") return;
     if (!onboarded) router.replace("/onboarding");
     else if (!healthDone && pathname !== "/salud") router.replace("/salud");
-  }, [hydrated, onboarded, healthDone, pathname, router]);
+  }, [ready, auth, onboarded, healthDone, pathname, publicPage, router]);
 
-  useReminderSync(hydrated);
-  useRemoteDone(hydrated);
-  useCloudBackup(hydrated);
+  const canSync = hydrated && (auth === "signedIn" || auth === "unconfigured");
+  useReminderSync(canSync);
+  useRemoteDone(canSync);
 
-  if (!hydrated) {
+  const blocked = auth === "signedOut" && !publicPage;
+  if (!ready || blocked) {
     return (
       <div className="grid min-h-dvh place-items-center">
-        <div className="font-display text-3xl font-bold grad-text">journey</div>
+        <div className="text-center">
+          <div className="font-display text-3xl font-bold grad-text">journey</div>
+          {auth === "syncing" && <p className="mt-2 text-sm text-muted">Sincronizando tus datos…</p>}
+        </div>
       </div>
     );
   }
 
-  const showNav = onboarded && !["/onboarding", "/legal", "/salud"].includes(pathname);
+  const showNav = onboarded && auth !== "signedOut" && !["/onboarding", "/legal", "/salud", "/login", "/auth/callback"].includes(pathname);
   return (
     <>
       <main className={showNav ? "mx-auto max-w-lg px-4 pb-28" : "mx-auto max-w-lg px-4 pb-10"}>{children}</main>
@@ -98,26 +124,4 @@ function useRemoteDone(hydrated: boolean) {
     document.addEventListener("visibilitychange", vis);
     return () => document.removeEventListener("visibilitychange", vis);
   }, [hydrated, pushEnabled, deviceId]);
-}
-
-/** Copia de seguridad automática en la nube si configuraste un código. */
-function useCloudBackup(hydrated: boolean) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (!hydrated) return;
-    return useApp.subscribe((state, prev) => {
-      if (!state.syncCode || state.lastSyncAt !== prev.lastSyncAt) return;
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(async () => {
-        const s = useApp.getState();
-        if (!s.syncCode) return;
-        const r = await fetch("/api/sync", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json", "x-sync-code": s.syncCode },
-          body: JSON.stringify(exportableState(s)),
-        }).catch(() => null);
-        if (r?.ok) s.markSynced();
-      }, 8000);
-    });
-  }, [hydrated]);
 }

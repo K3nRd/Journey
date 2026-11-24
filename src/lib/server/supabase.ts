@@ -30,3 +30,29 @@ export const notConfigured = () =>
     { error: "Supabase no está configurado. Revisa SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en Vercel." },
     { status: 503 },
   );
+
+/** Usuario dueño del token "Authorization: Bearer …" o null. */
+export async function userFromRequest(req: Request): Promise<{ id: string; email?: string } | null> {
+  const db = getSupabase();
+  const auth = req.headers.get("authorization") ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  if (!db || !token || token.length > 4000) return null;
+  const { data, error } = await db.auth.getUser(token);
+  if (error || !data.user) return null;
+  return { id: data.user.id, email: data.user.email };
+}
+
+export const unauthorized = () => Response.json({ error: "Inicia sesión para continuar." }, { status: 401 });
+
+/** El login está activo cuando existe la clave publicable de Supabase. */
+export const authEnabled = () => Boolean((process.env.SUPABASE_PUBLISHABLE_KEY ?? "").trim());
+
+/**
+ * Exige sesión solo si el login está activo. Devuelve { userId } (null si el login aún no está activo)
+ * o { response } con el error 401.
+ */
+export async function requireUser(req: Request): Promise<{ userId: string | null; response?: Response }> {
+  if (!authEnabled()) return { userId: null };
+  const user = await userFromRequest(req);
+  return user ? { userId: user.id } : { userId: null, response: unauthorized() };
+}

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Cloud, Download, Upload, RotateCcw, Send, Pencil, Trash2, Check } from "lucide-react";
+import { Bell, BellOff, Download, Upload, RotateCcw, Send, Pencil, Trash2, Check, LogOut } from "lucide-react";
+import { deleteAccount, resetLocal, signOut, useAuth } from "@/lib/cloud";
 import { useApp, exportableState, DEFAULT_PROFILE } from "@/lib/store";
 import { buildTimeline, buildWeeklyReminders, REMINDER_KINDS } from "@/lib/schedule";
 import { dateKey, fmt12 } from "@/lib/date";
@@ -28,7 +29,10 @@ export default function Ajustes() {
   const [busy, setBusy] = useState(false);
   const [env, setEnv] = useState({ ios: false, android: false, standalone: false, supported: false });
   const [confirmReset, setConfirmReset] = useState(false);
-  const [code, setCode] = useState(s.syncCode ?? "");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [diag, setDiag] = useState<ReturnType<typeof pushDiagnostics>>(null);
+  const user = useAuth((x) => x.user);
+  const auth = useAuth((x) => x.status);
   const file = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -46,7 +50,6 @@ export default function Ajustes() {
 
   const [pushMsg, setPushMsg] = useState<{ tone: "good" | "bad"; text: string } | null>(null);
   const [step, setStep] = useState<string | null>(null);
-  const [diag, setDiag] = useState<ReturnType<typeof pushDiagnostics>>(null);
 
   const turnOn = async () => {
     setPushMsg(null);
@@ -104,29 +107,6 @@ export default function Ajustes() {
     }
   };
 
-  const cloudUpload = async () => {
-    if (code.length < 12) return flash("bad", "El código debe tener al menos 12 caracteres.");
-    s.setSyncCode(code);
-    const r = await fetch("/api/sync", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json", "x-sync-code": code },
-      body: JSON.stringify(exportableState(useApp.getState())),
-    }).catch(() => null);
-    if (r?.ok) {
-      s.markSynced();
-      flash("good", "Copia guardada en la nube. Se actualizará sola.");
-    } else flash("bad", (await r?.json().catch(() => null))?.error ?? "No se pudo conectar.");
-  };
-
-  const cloudRestore = async () => {
-    if (code.length < 12) return flash("bad", "Escribe tu código (mínimo 12 caracteres).");
-    const r = await fetch("/api/sync", { headers: { "x-sync-code": code } }).catch(() => null);
-    if (!r?.ok) return flash("bad", (await r?.json().catch(() => null))?.error ?? "No se pudo conectar.");
-    const { data } = await r.json();
-    s.importData({ ...data, deviceId: s.deviceId, pushEnabled: s.pushEnabled, syncCode: code });
-    flash("good", "Datos restaurados desde la nube.");
-  };
-
   return (
     <div>
       <PageHeader title="Ajustes" back="/mas" />
@@ -149,6 +129,40 @@ export default function Ajustes() {
         </Link>
       </Card>
       <p className="mt-1.5 text-xs text-muted">«Editar» repite las preguntas iniciales: horario, gimnasio, comida y hábitos.</p>
+
+      {user && (
+        <>
+          <SectionTitle>Cuenta</SectionTitle>
+          <Card className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="truncate text-sm font-medium">{user.email}</div>
+                <div className="text-xs text-muted">
+                  {user.app_metadata?.provider === "google" ? "Con Google" : "Con correo y contraseña"}
+                  {s.lastSyncAt ? ` · guardado ${new Date(s.lastSyncAt).toLocaleTimeString("es-DO", { hour: "numeric", minute: "2-digit" })}` : ""}
+                </div>
+              </div>
+              <Badge tone="good">
+                <Check className="h-3 w-3" /> Sincronizado
+              </Badge>
+            </div>
+            <p className="text-xs text-muted">Tus datos se guardan solos en tu cuenta. Las fotos de progreso se quedan solo en este teléfono.</p>
+            <Button
+              variant="secondary"
+              className="w-full"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                if (s.pushEnabled) await disablePush(s.deviceId).catch(() => {});
+                await signOut();
+                location.assign(`${location.origin}/login`);
+              }}
+            >
+              <LogOut className="h-4 w-4" /> Cerrar sesión
+            </Button>
+          </Card>
+        </>
+      )}
 
       <SectionTitle
         action={
@@ -280,30 +294,6 @@ export default function Ajustes() {
         ]}
       />
 
-      <SectionTitle>Copia en la nube</SectionTitle>
-      <Card className="space-y-3">
-        <p className="text-sm text-muted">
-          Elige un código secreto largo (mínimo 12 caracteres, mejor una frase). Con él recuperas tus datos si cambias de teléfono. Las fotos no se suben.
-        </p>
-        <Field label="Código de sincronización">
-          <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value.trim())} placeholder="Ej.: mango-verde-gimnasio-2026" autoComplete="off" />
-        </Field>
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" onClick={cloudUpload} disabled={!status?.sync}>
-            <Cloud className="h-4 w-4" /> Guardar
-          </Button>
-          <Button variant="secondary" onClick={cloudRestore} disabled={!status?.sync}>
-            <Download className="h-4 w-4" /> Restaurar
-          </Button>
-        </div>
-        {s.lastSyncAt && (
-          <p className="flex items-center gap-1 text-xs text-good">
-            <Check className="h-3.5 w-3.5" /> Última copia: {new Date(s.lastSyncAt).toLocaleString("es-DO")}
-          </p>
-        )}
-        {status && !status.sync && <p className="text-xs text-warn">Disponible cuando conectes Supabase.</p>}
-      </Card>
-
       <SectionTitle>Respaldo en archivo</SectionTitle>
       <div className="grid grid-cols-2 gap-2">
         <Button variant="secondary" onClick={exportFile}>
@@ -328,7 +318,7 @@ export default function Ajustes() {
           <RotateCcw className="h-4 w-4" /> Reiniciar plan desde hoy (semana 1)
         </Button>
         <Button variant="danger" className="w-full" onClick={() => setConfirmReset(true)}>
-          <Trash2 className="h-4 w-4" /> Borrar todos mis datos
+          <Trash2 className="h-4 w-4" /> Borrar mi cuenta y mis datos
         </Button>
       </div>
 
@@ -349,41 +339,32 @@ export default function Ajustes() {
         <p className="pt-1">Hora de dormir actual: {fmt12(s.profile.sleepTime)} · Despertar: {fmt12(s.profile.wakeTime)}</p>
       </Card>
 
-      <Sheet open={confirmReset} onClose={() => setConfirmReset(false)} title="¿Borrar todo?">
-        <p className="text-sm text-muted">Se borran perfil, registros, entrenamientos y ajustes de este teléfono. Exporta un respaldo antes si lo quieres conservar.</p>
+      <Sheet open={confirmReset} onClose={() => setConfirmReset(false)} title="¿Borrar tu cuenta?">
+        <p className="text-sm text-muted">
+          Se borran para siempre tu cuenta, tu perfil, registros, entrenamientos y recordatorios, en este teléfono y en el servidor. Exporta un
+          respaldo antes si quieres conservar algo. No se puede deshacer.
+        </p>
+        {deleteError && <p className="mt-3 rounded-xl bg-bad/12 p-3 text-sm text-bad">{deleteError}</p>}
         <Button
           variant="danger"
           className="mt-4 w-full"
+          disabled={busy}
           onClick={async () => {
-            if (s.pushEnabled) await disablePush(s.deviceId);
-            useApp.setState({
-              onboarded: false,
-              profile: { ...DEFAULT_PROFILE, startDate: dateKey() },
-              overrides: {},
-              checks: {},
-              metrics: {},
-              weights: [],
-              waists: [],
-              workouts: [],
-              activeWorkoutId: undefined,
-              foodLog: {},
-              menuSwaps: {},
-              favorites: [],
-              savedExternal: [],
-              prices: {},
-              reviews: [],
-              spending: [],
-              photos: [],
-              shoppingChecked: {},
-              pushEnabled: false,
-              syncCode: undefined,
-              lastSyncAt: undefined,
-              calorieHistory: [],
-            });
-            location.assign(`${location.origin}/onboarding`);
+            setBusy(true);
+            setDeleteError(null);
+            if (s.pushEnabled) await disablePush(s.deviceId).catch(() => {});
+            if (auth === "unconfigured") {
+              resetLocal();
+              location.assign(`${location.origin}/onboarding`);
+              return;
+            }
+            const r = await deleteAccount();
+            setBusy(false);
+            if (r.error) setDeleteError(r.error);
+            else location.assign(`${location.origin}/login`);
           }}
         >
-          Sí, borrar todo
+          {busy ? "Borrando…" : "Sí, borrar mi cuenta"}
         </Button>
       </Sheet>
     </div>

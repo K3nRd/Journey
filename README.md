@@ -38,9 +38,14 @@ En Vercel → tu proyecto → Settings → Environment Variables:
 | `SYNC_SECRET` | opcional: otro valor aleatorio para proteger las copias (si no, usa `CRON_SECRET`) |
 | `MAX_DEVICES` | opcional: tope de teléfonos con recordatorios (por defecto 500) |
 | `SUPABASE_URL` | Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
+| `SUPABASE_SERVICE_ROLE_KEY` | clave secreta (`sb_secret_…` o service_role) |
+| `SUPABASE_PUBLISHABLE_KEY` | clave publicable (`sb_publishable_…`): activa el login |
+| `AUTH_GOOGLE_ENABLED` | `1` para mostrar «Continuar con Google» (después de configurarlo en Supabase) |
 
 Luego **Redeploy**.
+
+### 3b. Cuentas de usuario
+Ejecuta `supabase/auth.sql` en el SQL Editor. En Supabase → Authentication → Sign In / Providers → Email, desactiva **Confirm email** (el correo gratuito de Supabase solo envía a tu equipo). En Authentication → URL Configuration pon tu dominio como *Site URL* y agrega `https://TU-APP/auth/callback` en *Redirect URLs*.
 
 ### 4. Tarea que envía los avisos cada minuto
 Abre `supabase/cron.sql`, cambia `TU-APP.vercel.app` y `TU_CRON_SECRET`, y ejecútalo en el SQL Editor de Supabase.

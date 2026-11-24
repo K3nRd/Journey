@@ -103,6 +103,7 @@ export interface AppState {
   pushEnabled: boolean;
   syncCode?: string;
   lastSyncAt?: number;
+  ownerId?: string; // cuenta dueña de estos datos
   calorieHistory: { date: string; kcal: number; reason: string }[];
   installDismissed?: boolean;
 

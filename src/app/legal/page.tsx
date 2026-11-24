@@ -24,23 +24,24 @@ export default function Legal() {
       <Card className="mt-3 space-y-2 text-sm leading-relaxed text-fg/85">
         <h2 className="font-display text-lg font-bold text-fg">Privacidad</h2>
         <p>
-          <b className="text-fg">En tu teléfono:</b> tu perfil, tus respuestas de salud, tus registros de peso, comida, sueño y
-          entrenamientos se guardan en el almacenamiento de tu navegador. Las <b className="text-fg">fotos de progreso nunca salen de tu teléfono</b>.
+          <b className="text-fg">Tu cuenta:</b> tu correo (o tu cuenta de Google) y una copia de tus datos de Journey —perfil, respuestas de
+          salud, registros de peso, comida, sueño y entrenamientos— se guardan en nuestro servidor (Supabase) para que no los pierdas al
+          cambiar de teléfono. Solo tú puedes leerlos con tu sesión iniciada.
         </p>
         <p>
-          <b className="text-fg">En nuestro servidor</b> (Supabase, solo si activas estas funciones):
+          <b className="text-fg">Solo en tu teléfono:</b> las <b className="text-fg">fotos de progreso nunca salen de tu teléfono</b>.
         </p>
-        <ul className="list-disc space-y-1 pl-5">
-          <li>Recordatorios: la dirección de notificaciones de tu teléfono, tu zona horaria, las horas de tus recordatorios y qué marcaste como hecho.</li>
-          <li>Copia en la nube: una copia de tus datos (sin fotos) identificada por tu código secreto. Cualquiera con tu código puede leerla, así que usa uno largo y no lo compartas.</li>
-        </ul>
+        <p>
+          <b className="text-fg">Recordatorios:</b> si los activas, guardamos la dirección de notificaciones de tu teléfono, tu zona horaria,
+          las horas de tus recordatorios y qué marcaste como hecho.
+        </p>
         <p>
           No vendemos ni compartimos tus datos, no usamos publicidad ni rastreadores. Si escaneas un código de barras, el código se consulta
           en Open Food Facts.
         </p>
         <p>
-          <b className="text-fg">Borrar tus datos:</b> en Ajustes → «Borrar todos mis datos» se eliminan los datos del teléfono y se
-          desactivan los recordatorios en el servidor. Para borrar una copia en la nube, escríbenos.
+          <b className="text-fg">Borrar tus datos:</b> en Ajustes → «Borrar mi cuenta y mis datos» se eliminan para siempre tu cuenta y todos
+          tus datos, en el teléfono y en el servidor.
         </p>
       </Card>
 

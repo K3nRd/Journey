@@ -9,6 +9,7 @@ export const REMINDER_KINDS: { id: string; label: string; desc: string }[] = [
   { id: "gym", label: "Gimnasio", desc: "30 min antes de entrenar" },
   { id: "pausas", label: "Pausas activas", desc: "Levantarte cada 2 horas mientras trabajas" },
   { id: "caminar", label: "Caminata", desc: "Tu caminata diaria" },
+  { id: "suplementos", label: "Suplementos", desc: "Creatina, pre-entreno y proteína a su hora" },
   { id: "seguimiento", label: "Seguimiento", desc: "Pesaje, cintura, fotos y revisión semanal" },
   { id: "sueno", label: "Sueño", desc: "Soltar el teléfono y hora de dormir" },
 ];
@@ -323,6 +324,55 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
     });
   }
 
+  // ── Suplementos ──
+  const sup = p.supplements ?? {};
+  const daily = [sup.creatina && "creatina 3–5 g", sup["vitamina-d"] && "vitamina D", sup["omega-3"] && "omega-3"].filter(Boolean) as string[];
+  if (daily.length) {
+    add({
+      id: "suplementos",
+      min: comida1 + 1,
+      title: `Suplementos: ${daily.join(", ")}`,
+      desc: "Con el desayuno. La creatina va todos los días, también los de descanso.",
+      kind: "habit",
+      icon: "Pill",
+      href: "/suplementos",
+      checkable: true,
+      remind: true,
+      reminderKind: "suplementos",
+    });
+  }
+  if (isGym && sup.cafeina) {
+    const t = gym - 45;
+    if (t <= sleep - 480) {
+      add({
+        id: "pre-entreno",
+        min: t,
+        title: "Café o pre-entreno",
+        desc: "Máximo 400 mg de cafeína al día. Si te quita el sueño, sáltalo.",
+        kind: "habit",
+        icon: "Coffee",
+        href: "/suplementos",
+        checkable: true,
+        remind: true,
+        reminderKind: "suplementos",
+      });
+    }
+  }
+  if (isGym && sup.proteina) {
+    add({
+      id: "batido",
+      min: gymEnd + 5,
+      title: "Batido de proteína (si te falta proteína hoy)",
+      desc: "1 scoop ≈ 25 g. Cuenta como parte de tu cena post-entreno, no como extra.",
+      kind: "habit",
+      icon: "Milk",
+      href: "/suplementos",
+      checkable: true,
+      remind: true,
+      reminderKind: "suplementos",
+    });
+  }
+
   const cena = cenaMeal;
   add({
     id: "cena",
@@ -442,7 +492,7 @@ export function buildWeeklyReminders(p: Profile, overrides: Record<string, strin
     const key = dateKey(d);
     const wd = d.getDay();
     for (const it of buildTimeline(p, key, { overrides })) {
-      if (!it.remind || !p.reminderKinds[it.reminderKind]) continue;
+      if (!it.remind || p.reminderKinds[it.reminderKind] === false) continue;
       let time = it.time;
       let title = it.title;
       let body = it.desc ?? "";

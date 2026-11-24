@@ -56,6 +56,7 @@ export interface Profile {
   goal?: Goal; // por defecto "perder"
   mealsPerDay?: 3 | 4 | 5; // por defecto el sugerido
   health?: HealthScreening;
+  supplements?: Partial<Record<string, boolean>>; // los que toma
 }
 
 export interface HealthScreening {

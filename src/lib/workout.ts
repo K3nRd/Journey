@@ -1,24 +1,25 @@
-import { WEEK_PLAN, type DayPlan, type PlanExercise } from "@/data/workouts";
+import { ALL_PLANS, WEEK_PLAN, programFor, type DayPlan, type PlanExercise } from "@/data/workouts";
 import { getExercise } from "@/data/exercises";
 import type { Profile, WorkoutLog, ExerciseLog } from "./types";
 import { daysBetween, parseKey } from "./date";
 
-const STRENGTH = WEEK_PLAN.filter((d) => d.type === "fuerza");
 const REST = WEEK_PLAN.find((d) => d.type === "descanso")!;
 const CARDIO = WEEK_PLAN.find((d) => d.type === "cardio")!;
 
-/** Asigna las 5 sesiones de fuerza a los días de gimnasio elegidos, en orden. */
+/** Asigna las sesiones del programa (según cuántos días entrena) a sus días de gimnasio, en orden. */
 export function sessionForDate(p: Pick<Profile, "gymDays" | "saturdayCardio">, key: string): DayPlan {
   const wd = parseKey(key).getDay();
   const days = [...p.gymDays].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)); // lunes primero
   const idx = days.indexOf(wd);
-  if (idx >= 0) return { ...STRENGTH[idx % STRENGTH.length], weekday: wd };
+  const sessions = programFor(days.length).sessions;
+  if (idx >= 0 && idx < 5) return { ...sessions[idx % sessions.length], weekday: wd };
+  if (idx >= 5) return { ...CARDIO, weekday: wd };
   if (p.saturdayCardio && wd === 6) return CARDIO;
   return { ...REST, weekday: wd };
 }
 
 export function sessionByKey(p: Pick<Profile, "gymDays" | "saturdayCardio">, planKey: string): DayPlan | undefined {
-  return WEEK_PLAN.find((d) => d.key === planKey);
+  return ALL_PLANS.find((d) => d.key === planKey);
 }
 
 export type Phase = "adaptacion" | "normal" | "descarga";
@@ -189,4 +190,74 @@ export const isBarbell = (exId: string) => /Barbell|Smith|Bench_Press_-_Medium|S
 
 export function volume(log: WorkoutLog) {
   return log.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).reduce((b, s) => b + s.weight * s.reps, 0), 0);
+}
+
+// ── Volumen semanal por músculo ──────────────────────────
+// Evidencia: ~10–20 series efectivas por músculo a la semana para ganar músculo
+// (Schoenfeld 2017); con menos de 10 se progresa, pero más lento.
+export const TRACKED_MUSCLES = [
+  "pecho",
+  "espalda",
+  "hombros",
+  "bíceps",
+  "tríceps",
+  "cuádriceps",
+  "isquiotibiales",
+  "glúteos",
+  "pantorrillas",
+  "abdomen",
+] as const;
+export type TrackedMuscle = (typeof TRACKED_MUSCLES)[number];
+
+/** Series por músculo: el músculo principal cuenta 1, los secundarios 0.5. */
+export function setsByMuscle(exercises: { exId: string; sets: number }[]): Record<TrackedMuscle, number> {
+  const out = Object.fromEntries(TRACKED_MUSCLES.map((m) => [m, 0])) as Record<TrackedMuscle, number>;
+  for (const { exId, sets } of exercises) {
+    const ms = getExercise(exId).muscles;
+    ms.forEach((m, i) => {
+      if ((TRACKED_MUSCLES as readonly string[]).includes(m)) out[m as TrackedMuscle] += sets * (i === 0 ? 1 : 0.5);
+    });
+  }
+  return out;
+}
+
+/** Series hechas en la semana (registradas) a partir de los entrenamientos terminados. */
+export function doneSetsByMuscle(history: WorkoutLog[], fromKey: string, toKey: string) {
+  const list: { exId: string; sets: number }[] = [];
+  for (const w of history) {
+    if (!w.finishedAt || w.date < fromKey || w.date > toKey) continue;
+    for (const e of w.exercises) list.push({ exId: e.exId, sets: e.sets.filter((s) => s.done).length });
+  }
+  return setsByMuscle(list);
+}
+
+// ── Series de aproximación (calentamiento con carga) ─────
+/** Para ejercicios pesados: subir de a poco hasta el peso de trabajo. */
+export function warmupSets(workWeight: number, barbell: boolean): { weight: number; reps: number }[] {
+  if (workWeight <= 0) return [];
+  const inc = barbell ? 5 : 2.5;
+  const min = barbell ? 45 : 5;
+  const steps: [number, number][] = workWeight >= 135 ? [[0.4, 8], [0.6, 5], [0.8, 3], [0.9, 1]] : [[0.5, 8], [0.75, 4], [0.9, 1]];
+  const out: { weight: number; reps: number }[] = [];
+  for (const [pct, reps] of steps) {
+    const w = Math.max(min, roundTo(workWeight * pct, inc));
+    if (w >= workWeight) break;
+    if (out.length && out[out.length - 1].weight === w) continue;
+    out.push({ weight: w, reps });
+  }
+  return out;
+}
+
+// ── Zonas de frecuencia cardiaca (fórmula de Tanaka) ─────
+export function hrZones(age: number) {
+  const max = Math.round(208 - 0.7 * (age || 30));
+  const z = (a: number, b: number) => `${Math.round(max * a)}–${Math.round(max * b)}`;
+  return {
+    max,
+    zones: [
+      { name: "Zona 2 · quema de grasa y base", range: z(0.6, 0.7), talk: "Puedes conversar con frases completas", color: "good" as const },
+      { name: "Zona 3 · ritmo", range: z(0.7, 0.8), talk: "Solo frases cortas", color: "warn" as const },
+      { name: "Zona 4 · intervalos", range: z(0.8, 0.9), talk: "Casi no puedes hablar", color: "bad" as const },
+    ],
+  };
 }

@@ -183,7 +183,111 @@ export const WEEK_PLAN: DayPlan[] = [
   },
 ];
 
+const WARMUP_FULL: TimedItem[] = [
+  { exId: "Bicycling_Stationary", duration: "5 min suave" },
+  { exId: "Arm_Circles", duration: "30 s" },
+  { exId: "Standing_Hip_Circles", duration: "30 s" },
+  { exId: "Bodyweight_Squat", duration: "15 reps" },
+  { exId: "Incline_Push-Up", duration: "10 reps" },
+];
+const COOL_FULL: TimedItem[] = [
+  { exId: "Chest_And_Front_Of_Shoulder_Stretch", duration: "30 s por lado" },
+  { exId: "Spinal_Stretch", duration: "30 s por lado" },
+  { exId: "Quad_Stretch", duration: "30 s por lado" },
+  { exId: "Hamstring_Stretch", duration: "30 s por lado" },
+];
+
+const strength = (
+  key: string,
+  title: string,
+  short: string,
+  focus: string,
+  warmup: TimedItem[],
+  cooldown: TimedItem[],
+  exercises: PlanExercise[],
+  cardioFinisher?: string,
+): DayPlan => ({ key, weekday: -1, title, short, focus, type: "fuerza", warmup, cooldown, exercises, cardioFinisher });
+
+/** 2–3 días: cuerpo completo (cada músculo 2–3 veces por semana). */
+export const FULL_BODY: DayPlan[] = [
+  strength("full-a", "Cuerpo completo A", "Full A", "Sentadilla, press de banca y remo", WARMUP_FULL, COOL_FULL, [
+    { exId: "Barbell_Squat", sets: 3, reps: "6-8", restSec: 180, key: true },
+    { exId: "Barbell_Bench_Press_-_Medium_Grip", sets: 3, reps: "6-8", restSec: 150, key: true },
+    { exId: "Seated_Cable_Rows", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Lying_Leg_Curls", sets: 3, reps: "10-12", restSec: 75 },
+    { exId: "Side_Lateral_Raise", sets: 3, reps: "12-15", restSec: 60 },
+    { exId: "Cable_Crunch", sets: 3, reps: "12-15", restSec: 60 },
+  ], "10–15 min de caminata inclinada (opcional)"),
+  strength("full-b", "Cuerpo completo B", "Full B", "Peso muerto rumano, press de hombro y jalón", WARMUP_FULL, COOL_FULL, [
+    { exId: "Romanian_Deadlift", sets: 3, reps: "8-10", restSec: 150, key: true },
+    { exId: "Dumbbell_Shoulder_Press", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Wide-Grip_Lat_Pulldown", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Dumbbell_Bench_Press", sets: 3, reps: "10-12", restSec: 90 },
+    { exId: "Leg_Press", sets: 3, reps: "10-12", restSec: 120 },
+    { exId: "Standing_Calf_Raises", sets: 2, reps: "12-15", restSec: 60 },
+    { exId: "Barbell_Curl", sets: 2, reps: "10-12", restSec: 60 },
+    { exId: "Triceps_Pushdown_-_Rope_Attachment", sets: 2, reps: "10-12", restSec: 60 },
+  ], "10–15 min de caminata inclinada (opcional)"),
+  strength("full-c", "Cuerpo completo C", "Full C", "Hip thrust, press inclinado y remo con barra", WARMUP_FULL, COOL_FULL, [
+    { exId: "Barbell_Hip_Thrust", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Incline_Dumbbell_Press", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Bent_Over_Barbell_Row", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Dumbbell_Lunges", sets: 3, reps: "10 por pierna", restSec: 90 },
+    { exId: "Face_Pull", sets: 3, reps: "12-15", restSec: 60 },
+    { exId: "Standing_Calf_Raises", sets: 3, reps: "12-15", restSec: 60 },
+    { exId: "Plank", sets: 3, reps: "30-45 s", restSec: 45 },
+  ], "10–15 min de caminata inclinada (opcional)"),
+];
+
+/** 4 días: torso / pierna (cada músculo 2 veces por semana). */
+export const UPPER_LOWER: DayPlan[] = [
+  strength("torso-a", "Torso A (fuerza)", "Torso A", "Press de banca, remo y hombro", WARMUP_UPPER, COOL_UPPER, [
+    { exId: "Barbell_Bench_Press_-_Medium_Grip", sets: 4, reps: "6-8", restSec: 150, key: true },
+    { exId: "Bent_Over_Barbell_Row", sets: 4, reps: "6-8", restSec: 150, key: true },
+    { exId: "Dumbbell_Shoulder_Press", sets: 3, reps: "8-10", restSec: 120, key: true },
+    { exId: "Wide-Grip_Lat_Pulldown", sets: 3, reps: "10-12", restSec: 90 },
+    { exId: "Barbell_Curl", sets: 3, reps: "8-10", restSec: 75 },
+    { exId: "Triceps_Pushdown_-_Rope_Attachment", sets: 3, reps: "10-12", restSec: 75 },
+  ]),
+  strength("pierna-a", "Pierna A (sentadilla)", "Pierna A", "Cuádriceps, femoral y pantorrilla", WARMUP_LOWER, COOL_LOWER, [
+    { exId: "Barbell_Squat", sets: 4, reps: "6-8", restSec: 180, key: true },
+    { exId: "Romanian_Deadlift", sets: 3, reps: "8-10", restSec: 150, key: true },
+    { exId: "Leg_Extensions", sets: 3, reps: "12-15", restSec: 75 },
+    { exId: "Lying_Leg_Curls", sets: 3, reps: "10-12", restSec: 75, key: true },
+    { exId: "Standing_Calf_Raises", sets: 4, reps: "12-15", restSec: 60 },
+    { exId: "Cable_Crunch", sets: 3, reps: "12-15", restSec: 60 },
+  ]),
+  strength("torso-b", "Torso B (volumen)", "Torso B", "Press inclinado, jalón y hombro lateral", WARMUP_UPPER, COOL_BACK, [
+    { exId: "Incline_Dumbbell_Press", sets: 4, reps: "8-10", restSec: 120, key: true },
+    { exId: "Close-Grip_Front_Lat_Pulldown", sets: 4, reps: "8-10", restSec: 120, key: true },
+    { exId: "Seated_Cable_Rows", sets: 3, reps: "10-12", restSec: 90, key: true },
+    { exId: "Side_Lateral_Raise", sets: 4, reps: "12-15", restSec: 60 },
+    { exId: "Face_Pull", sets: 3, reps: "12-15", restSec: 60 },
+    { exId: "Hammer_Curls", sets: 3, reps: "10-12", restSec: 60 },
+    { exId: "Cable_Rope_Overhead_Triceps_Extension", sets: 3, reps: "10-12", restSec: 60 },
+  ]),
+  strength("pierna-b", "Pierna B (glúteo)", "Pierna B", "Glúteo, femoral y abdomen", WARMUP_LOWER, COOL_LOWER, [
+    { exId: "Barbell_Hip_Thrust", sets: 4, reps: "8-10", restSec: 120, key: true },
+    { exId: "Leg_Press", sets: 3, reps: "10-12", restSec: 120, key: true },
+    { exId: "Dumbbell_Lunges", sets: 3, reps: "10 por pierna", restSec: 90 },
+    { exId: "Seated_Leg_Curl", sets: 3, reps: "10-12", restSec: 75, key: true },
+    { exId: "Seated_Calf_Raise", sets: 3, reps: "15-20", restSec: 60 },
+    { exId: "Hanging_Leg_Raise", sets: 3, reps: "10-12", restSec: 60 },
+  ]),
+];
+
+/** Qué programa conviene según los días de gimnasio. */
+export function programFor(days: number): { name: string; why: string; sessions: DayPlan[] } {
+  const split = WEEK_PLAN.filter((d) => d.type === "fuerza");
+  if (days <= 2) return { name: "Cuerpo completo (2 días)", why: "Con 2 días, entrenar todo el cuerpo en cada sesión es lo que más músculo trabaja por semana.", sessions: FULL_BODY.slice(0, 2) };
+  if (days === 3) return { name: "Cuerpo completo (3 días)", why: "3 sesiones de cuerpo completo: cada músculo 3 veces por semana con buen descanso entre días.", sessions: FULL_BODY };
+  if (days === 4) return { name: "Torso / Pierna", why: "4 días: cada músculo 2 veces por semana, la frecuencia que mejor funciona para ganar músculo.", sessions: UPPER_LOWER };
+  return { name: "Rutina dividida (5 días)", why: "5 días: un grupo principal por día con más volumen por sesión. Si tienes 6 días, el sexto es cardio.", sessions: split };
+}
+
+export const ALL_PLANS: DayPlan[] = [...WEEK_PLAN, ...FULL_BODY, ...UPPER_LOWER];
+
 export const dayPlanFor = (weekday: number) =>
   WEEK_PLAN.find((d) => d.weekday === weekday)!;
 
-export const dayPlanByKey = (key: string) => WEEK_PLAN.find((d) => d.key === key);
+export const dayPlanByKey = (key: string) => ALL_PLANS.find((d) => d.key === key);

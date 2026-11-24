@@ -34,6 +34,7 @@ import {
   lastLogFor,
   prsIn,
   isBarbell,
+  warmupSets,
   volume,
 } from "@/lib/workout";
 import { toggleItem } from "@/lib/actions";
@@ -361,6 +362,20 @@ function ActiveSession({
             </div>
           )}
         </div>
+
+        {ex.heavy && !cur.sets.some((s) => s.done) && warmupSets(cur.sets[0]?.weight || sug.weight, isBarbell(cur.exId)).length > 0 && (
+          <div className="mt-3 rounded-xl border border-line p-3 text-sm">
+            <div className="font-semibold">Series de aproximación</div>
+            <p className="mt-0.5 text-xs text-muted">Antes de tu peso de trabajo, sube de a poco. Descansa 60 s entre cada una; no cuentan como series.</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {warmupSets(cur.sets[0]?.weight || sug.weight, isBarbell(cur.exId)).map((w, i) => (
+                <span key={i} className="rounded-lg bg-surface-2 px-2 py-1 text-xs font-semibold">
+                  {w.weight} lb × {w.reps}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Series */}
         <div className="mt-3 space-y-2">

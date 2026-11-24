@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, History, Calculator } from "lucide-react";
+import { ChevronRight, History, Calculator, Pill, HeartPulse } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { PageHeader, Card, Badge, SectionTitle, cx } from "@/components/ui";
 import { ExercisePreview } from "@/components/ExercisePreview";
 import { addDays, dateKey, DAY_NAMES, fmtDate, weekStart, parseKey } from "@/lib/date";
-import { sessionForDate, phaseFor, PHASE_INFO, weekNumber, volume } from "@/lib/workout";
+import { sessionForDate, phaseFor, PHASE_INFO, weekNumber, volume, setsByMuscle, doneSetsByMuscle, TRACKED_MUSCLES, hrZones } from "@/lib/workout";
+import { dayPlanByKey, programFor } from "@/data/workouts";
 import { getExercise } from "@/data/exercises";
 import { WARNING_SIGNS } from "@/data/extras";
 
@@ -19,6 +20,11 @@ export default function Entreno() {
   const phase = phaseFor(profile, today);
   const info = PHASE_INFO[phase];
   const finished = workouts.filter((w) => w.finishedAt).sort((a, b) => b.startedAt - a.startedAt);
+  const program = programFor(profile.gymDays.length);
+  const weekSessions = days.map((k) => sessionForDate(profile, k)).filter((s) => s.type === "fuerza");
+  const planned = setsByMuscle(weekSessions.flatMap((s) => s.exercises.map((e) => ({ exId: e.exId, sets: e.sets }))));
+  const done = doneSetsByMuscle(workouts, days[0], days[6]);
+  const hr = hrZones(profile.age);
 
   return (
     <div>
@@ -58,6 +64,53 @@ export default function Entreno() {
         })}
       </div>
 
+      <Card className="mt-4">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted">Tu programa</div>
+        <div className="mt-1 font-display text-lg font-bold">{program.name}</div>
+        <p className="mt-1 text-sm text-muted">{program.why} Se ajusta solo si cambias tus días de gimnasio en Ajustes.</p>
+      </Card>
+
+      <SectionTitle>Series por músculo esta semana</SectionTitle>
+      <Card className="space-y-2">
+        <p className="text-xs text-muted">
+          Para ganar músculo, la evidencia apunta a unas <b className="text-fg">10–20 series por músculo a la semana</b>. La barra se llena con lo que
+          registras; la marca gris es lo planificado.
+        </p>
+        {TRACKED_MUSCLES.map((m) => {
+          const max = 22;
+          const d = Math.round(done[m] * 2) / 2;
+          const pl = Math.round(planned[m] * 2) / 2;
+          return (
+            <div key={m} className="flex items-center gap-2 text-xs">
+              <span className="w-24 shrink-0 capitalize">{m}</span>
+              <div className="relative h-2.5 flex-1 overflow-hidden rounded-full bg-surface-3">
+                <div className="absolute inset-y-0 left-[45.45%] w-[45.45%] bg-good/15" />
+                <div className={cx("absolute inset-y-0 left-0 rounded-full", d >= 10 ? "bg-good" : "bg-accent")} style={{ width: `${Math.min(100, (d / max) * 100)}%` }} />
+                <div className="absolute inset-y-0 w-0.5 bg-muted" style={{ left: `${Math.min(100, (pl / max) * 100)}%` }} />
+              </div>
+              <span className="w-12 shrink-0 text-right tabular-nums text-muted">
+                {d}/{pl}
+              </span>
+            </div>
+          );
+        })}
+      </Card>
+
+      <SectionTitle>Zonas de cardio</SectionTitle>
+      <Card className="space-y-2">
+        <p className="text-xs text-muted">Frecuencia máxima estimada: {hr.max} latidos/min (fórmula de Tanaka). Úsalo con reloj o el agarre de la caminadora.</p>
+        {hr.zones.map((z) => (
+          <div key={z.name} className="flex items-center gap-3 text-sm">
+            <Badge tone={z.color}>{z.range}</Badge>
+            <div className="min-w-0 flex-1">
+              <div className="font-medium">{z.name}</div>
+              <div className="text-xs text-muted">{z.talk}</div>
+            </div>
+          </div>
+        ))}
+        <p className="text-xs text-muted">Si tomas medicamentos para la presión o el corazón, estas cifras no aplican: guíate por cómo te sientes.</p>
+      </Card>
+
       <SectionTitle>Herramientas</SectionTitle>
       <div className="grid grid-cols-2 gap-3">
         <Link href="/entreno/discos" className="card flex flex-col gap-1 !p-3">
@@ -69,6 +122,16 @@ export default function Entreno() {
           <History className="h-5 w-5 text-accent-text" />
           <span className="text-sm font-semibold">Ejercicios y récords</span>
           <span className="text-xs text-muted">Biblioteca y progreso</span>
+        </Link>
+        <Link href="/suplementos" className="card flex flex-col gap-1 !p-3">
+          <Pill className="h-5 w-5 text-accent-text" />
+          <span className="text-sm font-semibold">Suplementos</span>
+          <span className="text-xs text-muted">Creatina, proteína y más</span>
+        </Link>
+        <Link href="/guia" className="card flex flex-col gap-1 !p-3">
+          <HeartPulse className="h-5 w-5 text-accent-text" />
+          <span className="text-sm font-semibold">Guía de salud</span>
+          <span className="text-xs text-muted">Lo que dice la ciencia</span>
         </Link>
       </div>
 
@@ -117,13 +180,5 @@ export default function Entreno() {
 }
 
 function sessionTitle(key: string) {
-  const map: Record<string, string> = {
-    lunes: "Pecho y tríceps",
-    martes: "Espalda y bíceps",
-    miercoles: "Piernas",
-    jueves: "Hombros y torso",
-    viernes: "Piernas y abdomen",
-    sabado: "Cardio y movilidad",
-  };
-  return map[key] ?? key;
+  return dayPlanByKey(key)?.title ?? key;
 }

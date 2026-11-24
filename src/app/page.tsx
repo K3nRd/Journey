@@ -280,7 +280,7 @@ function NowCard({
         </Ring>
         {focus ? (
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em]">
+            <div className="flex items-center gap-1.5 overflow-hidden whitespace-nowrap text-[11px] font-bold uppercase tracking-[0.08em]">
               {current ? (
                 <>
                   <span className="pulse-now h-2 w-2 rounded-full bg-accent" />

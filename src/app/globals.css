@@ -112,6 +112,29 @@ body {
   color: var(--text);
 }
 
+/* Sin zoom: ni pellizco ni doble toque, y el texto no se agranda solo al girar el teléfono */
+html {
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary {
+  touch-action: manipulation;
+}
+
+/* iOS acerca la pantalla al tocar un campo con letra < 16 px: todos a 16 px como mínimo */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em) !important;
+}
+
 body {
   overflow-x: clip;
   font-family: var(--font-sans);

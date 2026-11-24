@@ -40,6 +40,22 @@ export function Providers({ children }: { children: ReactNode }) {
     registerSW();
   }, []);
 
+  // iOS ignora user-scalable=no: bloqueamos el pellizco (el doble toque lo evita touch-action en CSS)
+  useEffect(() => {
+    const stop = (e: Event) => e.preventDefault();
+    const pinch = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    document.addEventListener("gesturestart", stop, { passive: false });
+    document.addEventListener("gesturechange", stop, { passive: false });
+    document.addEventListener("touchmove", pinch, { passive: false });
+    return () => {
+      document.removeEventListener("gesturestart", stop);
+      document.removeEventListener("gesturechange", stop);
+      document.removeEventListener("touchmove", pinch);
+    };
+  }, []);
+
   // Sesión: arranca una vez que los datos locales están listos
   const auth = useAuth((s) => s.status);
   useEffect(() => {

@@ -98,8 +98,15 @@ export default function Ajustes() {
   const importFile = async (f?: File) => {
     if (!f) return;
     try {
+      if (f.size > 5_000_000) throw new Error();
       const data = JSON.parse(await f.text());
-      if (!data.profile) throw new Error();
+      const ok =
+        data && typeof data === "object" && data.profile && typeof data.profile === "object" &&
+        typeof data.profile.startWeightLb === "number" && Array.isArray(data.weights ?? []) && Array.isArray(data.workouts ?? []);
+      if (!ok) throw new Error();
+      // Solo se importan los campos conocidos de Journey
+      const allowed = ["onboarded", "profile", "overrides", "checks", "metrics", "weights", "waists", "workouts", "foodLog", "menuSwaps", "favorites", "prices", "reviews", "spending", "photos", "shoppingChecked", "theme", "calorieHistory"];
+      for (const k of Object.keys(data)) if (!allowed.includes(k)) delete data[k];
       s.importData({ ...data, deviceId: s.deviceId, pushEnabled: s.pushEnabled });
       flash("good", "Datos restaurados.");
     } catch {

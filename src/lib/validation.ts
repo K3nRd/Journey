@@ -79,6 +79,7 @@ export function validateHealth(p: Profile): Errors {
     e.answers = "Responde todas las preguntas.";
   if (h?.flagged && !h.doctorAck) e.doctor = "Confirma que consultarás con un médico antes de empezar.";
   if (!h?.disclaimerAcceptedAt) e.disclaimer = "Debes aceptar el aviso para continuar.";
+  if (!h?.dataConsentAt) e.consent = "Necesitamos tu autorización para guardar tus datos de salud.";
   return e;
 }
 

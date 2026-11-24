@@ -65,7 +65,7 @@ export function Providers({ children }: { children: ReactNode }) {
   }, [hydrated]);
 
   // Login obligatorio → preguntas iniciales → cuestionario de salud
-  const healthDone = useApp((s) => Boolean(s.profile.health?.disclaimerAcceptedAt));
+  const healthDone = useApp((s) => Boolean(s.profile.health?.disclaimerAcceptedAt && s.profile.health?.dataConsentAt));
   const publicPage = PUBLIC.includes(pathname);
   const ready = hydrated && auth !== "loading" && auth !== "syncing";
   useEffect(() => {

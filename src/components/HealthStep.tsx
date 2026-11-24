@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Check, HeartPulse, ShieldAlert } from "lucide-react";
+import { Check, HeartPulse, Lock, ShieldAlert } from "lucide-react";
 import { useApp } from "@/lib/store";
 import { HEALTH_QUESTIONS, validateHealth } from "@/lib/validation";
 import { Card, cx } from "./ui";
 import type { HealthScreening } from "@/lib/types";
 
-const EMPTY: HealthScreening = { answers: {}, flagged: false, doctorAck: false, disclaimerAcceptedAt: "" };
+const EMPTY: HealthScreening = { answers: {}, flagged: false, doctorAck: false, disclaimerAcceptedAt: "", dataConsentAt: undefined };
 
 /** Cuestionario de salud (basado en PAR-Q+) y aceptación del aviso médico. */
 export function HealthStep({ showErrors }: { showErrors: boolean }) {
@@ -30,7 +30,7 @@ export function HealthStep({ showErrors }: { showErrors: boolean }) {
     <div className="space-y-4">
       <h1 className="font-display text-[28px] font-bold leading-tight">Tu salud</h1>
       <p className="text-sm text-muted">
-        Antes de empezar un plan de ejercicio y alimentación, responde con sinceridad. Tus respuestas se quedan en tu teléfono.
+        Antes de empezar un plan de ejercicio y alimentación, responde con sinceridad. Tus respuestas solo las ves tú.
       </p>
 
       <div className="space-y-2">
@@ -119,6 +119,25 @@ export function HealthStep({ showErrors }: { showErrors: boolean }) {
         {errors.disclaimer && (
           <p data-error className="text-[13px] font-medium text-bad">
             {errors.disclaimer}
+          </p>
+        )}
+      </Card>
+
+      <Card className="space-y-3">
+        <div className="flex items-center gap-2 font-semibold">
+          <Lock className="h-5 w-5 text-accent-text" /> Tus datos de salud
+        </div>
+        <p className="text-sm text-muted">
+          Tu peso, medidas, respuestas de salud, comidas, sueño y entrenamientos son datos sensibles. Los usamos{" "}
+          <b className="text-fg">solo para armar y ajustar tu plan</b>, se guardan en tu cuenta (servidores de Supabase y Vercel en EE. UU.), no se
+          venden ni se comparten, y puedes borrarlos cuando quieras desde Ajustes.
+        </p>
+        <CheckRow checked={Boolean(h.dataConsentAt)} onChange={(v) => update({ dataConsentAt: v ? new Date().toISOString() : undefined })}>
+          Autorizo de forma expresa que Journey guarde y use mis datos de salud para estos fines.
+        </CheckRow>
+        {errors.consent && (
+          <p data-error className="text-[13px] font-medium text-bad">
+            {errors.consent}
           </p>
         )}
       </Card>

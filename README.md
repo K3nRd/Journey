@@ -40,6 +40,8 @@ En Vercel → tu proyecto → Settings → Environment Variables:
 | `SUPABASE_URL` | Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | clave secreta (`sb_secret_…` o service_role) |
 | `SUPABASE_PUBLISHABLE_KEY` | clave publicable (`sb_publishable_…`): activa el login |
+| `NEXT_PUBLIC_CONTACT_EMAIL` | correo de contacto que aparece en Términos y privacidad |
+| `NEXT_PUBLIC_LEGAL_OWNER` | nombre del responsable que aparece en Términos y privacidad |
 
 Luego **Redeploy**.
 

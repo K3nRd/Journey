@@ -63,6 +63,7 @@ export interface HealthScreening {
   flagged: boolean; // alguna respuesta "sí"
   doctorAck: boolean; // confirmó consultar con un médico
   disclaimerAcceptedAt: string; // ISO
+  dataConsentAt?: string; // ISO: consentimiento expreso para guardar datos de salud
 }
 
 export interface TimelineItem {

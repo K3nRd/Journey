@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, Check, RefreshCw } from "lucide-react";
 import { FOOD } from "@/data/foods";
-import { RECIPES } from "@/data/recipes";
-import { RECIPE_POOL } from "@/data/mealplan";
 import { goalOf, mealsPerDay, slotLabel } from "@/lib/meals";
-import { formatQty, recipeMacros, excludedFoodIds, recipeAllowed, mealKcalTarget, portionScale, type PlannedMeal } from "@/lib/nutrition";
+import { formatQty, mealKcalTarget, swapOptions, type PlannedMeal, type SwapOption } from "@/lib/nutrition";
 import { useTargets } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { Button, Sheet, cx } from "./ui";
@@ -108,48 +106,85 @@ function SwapSheet({ open, onClose, meal, weekday }: { open: boolean; onClose: (
   const profile = useApp((s) => s.profile);
   const favorites = useApp((s) => s.favorites);
   const t = useTargets();
+  const [q, setQ] = useState("");
+  const [showAll, setShowAll] = useState(false);
   const goalKcal = mealKcalTarget(profile, t.kcal, meal.slot);
-  const ex = excludedFoodIds(profile);
-  const options = RECIPES.filter((r) => r.slots.includes(RECIPE_POOL[meal.slot]) && recipeAllowed(r, ex)).sort(
-    (a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id)),
+  const all = useMemo(() => (open ? swapOptions(meal, profile, t.kcal) : []), [open, meal, profile, t.kcal]);
+  const norm = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const filtered = all
+    .filter((o) => o.recipe.id !== meal.recipe.id)
+    .filter((o) => !q || norm(o.recipe.name + " " + o.recipe.tags.join(" ")).includes(norm(q)))
+    .sort((a, b) => Number(b.equivalent) - Number(a.equivalent) || Number(favorites.includes(b.recipe.id)) - Number(favorites.includes(a.recipe.id)));
+  const equivalents = filtered.filter((o) => o.equivalent);
+  const others = filtered.filter((o) => !o.equivalent);
+
+  const pick = (id: string) => {
+    swapMeal(weekday, meal.slot, id);
+    setQ("");
+    setShowAll(false);
+    onClose();
+  };
+
+  const Row = ({ o }: { o: SwapOption }) => (
+    <button
+      onClick={() => pick(o.recipe.id)}
+      className={cx("flex w-full items-center gap-3 rounded-xl border p-3 text-left", o.equivalent ? "border-line bg-surface-2" : "border-line/60 bg-surface")}
+    >
+      <span className="text-2xl">{o.recipe.emoji}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">
+          {favorites.includes(o.recipe.id) && "★ "}
+          {o.recipe.name}
+        </span>
+        <span className="text-xs text-muted">
+          ≈{Math.round(o.macros.kcal)} kcal · {Math.round(o.macros.protein)} g proteína
+          {Math.abs(o.proteinDiff) >= 1 && (
+            <span className={o.proteinDiff < 0 && !o.equivalent ? "text-warn" : o.proteinDiff > 0 ? "text-good" : ""}>
+              {" "}({o.proteinDiff > 0 ? "+" : ""}
+              {Math.round(o.proteinDiff)} g)
+            </span>
+          )}
+          {o.scale !== 1 ? ` · porción ×${o.scale}` : ""} · {o.recipe.minutes} min
+        </span>
+      </span>
+    </button>
   );
+
   return (
     <Sheet open={open} onClose={onClose} title="Cambiar comida">
       <p className="mb-3 text-sm text-muted">
-        A esta comida le tocan unas <b className="text-fg">{Math.round(goalKcal)} kcal</b>. Elijas la que elijas, la porción se ajusta para que el
-        total del día siga en tu meta. Se cambia para este día de la semana.
+        Tu comida actual: <b className="text-fg">≈{Math.round(meal.macros.kcal)} kcal y {Math.round(meal.macros.protein)} g de proteína</b>. Te
+        mostramos primero las <b className="text-fg">equivalentes</b>: mismas calorías (la porción ya viene ajustada a {Math.round(goalKcal)} kcal) y
+        la misma proteína o más.
       </p>
+      <input
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar: pollo, mexicano, avena…"
+        className="mb-3 h-11 w-full rounded-xl border border-line bg-surface-2 px-3 text-[16px] outline-none focus:border-accent"
+      />
+      <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-good">Equivalentes ({equivalents.length})</div>
       <div className="space-y-2">
-        {options.map((r) => {
-          const sc = portionScale(r, goalKcal);
-          const m = recipeMacros(r, sc);
-          const current = r.id === meal.recipe.id;
-          return (
-            <button
-              key={r.id}
-              onClick={() => {
-                swapMeal(weekday, meal.slot, r.id);
-                onClose();
-              }}
-              className={cx(
-                "flex w-full items-center gap-3 rounded-xl border p-3 text-left",
-                current ? "border-accent bg-accent-soft" : "border-line bg-surface-2",
-              )}
-            >
-              <span className="text-2xl">{r.emoji}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm font-semibold">
-                  {favorites.includes(r.id) && "★ "}
-                  {r.name}
-                </span>
-                <span className="text-xs text-muted">
-                  {sc !== 1 ? `Porción ×${sc} · ` : ""}≈{Math.round(m.kcal)} kcal · {Math.round(m.protein)} g proteína · {r.minutes} min
-                </span>
-              </span>
-            </button>
-          );
-        })}
+        {equivalents.map((o) => (
+          <Row key={o.recipe.id} o={o} />
+        ))}
+        {equivalents.length === 0 && <p className="text-sm text-muted">No hay equivalentes con esa búsqueda.</p>}
       </div>
+      {others.length > 0 && (
+        <div className="mt-4">
+          <button type="button" onClick={() => setShowAll((v) => !v)} className="text-sm font-semibold text-accent-text">
+            {showAll ? "Ocultar" : "Ver"} otras {others.length} opciones (menos proteína)
+          </button>
+          {showAll && (
+            <div className="mt-2 space-y-2">
+              <p className="text-xs text-warn">Estas te dan menos proteína que tu comida actual: compénsalo en otra comida del día.</p>
+              {others.map((o) => (
+                <Row key={o.recipe.id} o={o} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <Button
         variant="ghost"
         className="mt-3 w-full"

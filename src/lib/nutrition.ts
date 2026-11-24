@@ -268,3 +268,31 @@ export function formatBuyQty(item: ShoppingItem): string {
 }
 
 export const r0 = (n: number) => Math.round(n);
+
+// ── Intercambios: cambiar una comida por otra equivalente ──
+// Como las "listas de intercambio" de los nutricionistas: la nueva comida debe
+// dar las mismas calorías (se ajusta la porción) y al menos la misma proteína.
+
+export interface SwapOption {
+  recipe: Recipe;
+  scale: number;
+  macros: Macros;
+  equivalent: boolean;
+  proteinDiff: number; // g respecto a la comida actual
+}
+
+export function swapOptions(meal: PlannedMeal, p: Profile, kcalTarget: number): SwapOption[] {
+  const excluded = excludedFoodIds(p);
+  const goalKcal = mealKcalTarget(p, kcalTarget, meal.slot);
+  const targetProtein = meal.macros.protein;
+  const tolerance = Math.max(4, targetProtein * 0.12);
+  return RECIPES.filter((r) => r.slots.includes(RECIPE_POOL[meal.slot]) && recipeAllowed(r, excluded))
+    .map((r) => {
+      const scale = portionScale(r, goalKcal);
+      const macros = recipeMacros(r, scale);
+      const kcalOk = Math.abs(macros.kcal - goalKcal) / goalKcal <= 0.08;
+      const proteinDiff = macros.protein - targetProtein;
+      return { recipe: r, scale, macros, proteinDiff, equivalent: kcalOk && proteinDiff >= -tolerance };
+    })
+    .sort((a, b) => Number(b.equivalent) - Number(a.equivalent) || Math.abs(a.proteinDiff) - Math.abs(b.proteinDiff));
+}

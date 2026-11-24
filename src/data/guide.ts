@@ -38,6 +38,17 @@ export const GUIDE: GuideSection[] = [
         strength: "fuerte",
       },
       {
+        id: "plato-saludable",
+        emoji: "🍽️",
+        title: "El plato saludable",
+        number: "½ vegetales · ¼ proteína · ¼ carbohidrato integral",
+        what: "La Escuela de Salud Pública de Harvard recomienda llenar la mitad del plato con vegetales y frutas, un cuarto con proteína saludable (pollo, pescado, huevos, habichuelas) y un cuarto con granos integrales o víveres, con aceites saludables. El patrón mediterráneo, que sigue esta idea, es el que tiene la evidencia más fuerte para el peso y el corazón.",
+        how: "Arma así tu almuerzo y tu cena. Prefiere arroz integral, quinoa, avena, batata o víveres antes que harinas refinadas, y aceite de oliva en vez de frituras.",
+        journey: "Las más de 200 recetas de Journey siguen esta estructura, y cuando cambias una comida te ofrecemos primero las equivalentes: mismas calorías y la misma proteína o más, como en las listas de intercambio de los nutricionistas.",
+        source: { label: "Harvard · Plato para comer saludable", url: "https://nutritionsource.hsph.harvard.edu/healthy-eating-plate/" },
+        strength: "fuerte",
+      },
+      {
         id: "horario-comidas",
         emoji: "⏰",
         title: "Horario de comidas",

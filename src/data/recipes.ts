@@ -1,4 +1,8 @@
 import type { MealSlot } from "@/lib/types";
+import { DESAYUNOS } from "./recipes-desayunos";
+import { PLATOS } from "./recipes-platos";
+import { PLATOS_2 } from "./recipes-platos2";
+import { MERIENDAS } from "./recipes-meriendas";
 
 export interface Ingredient {
   food: string; // id en FOODS
@@ -19,7 +23,7 @@ export interface Recipe {
   prep?: string; // consejo de preparación por lotes
 }
 
-export const RECIPES: Recipe[] = [
+const BASE_RECIPES: Recipe[] = [
   // ───────── PRIMERA COMIDA ─────────
   {
     id: "mangu-huevos",
@@ -852,5 +856,8 @@ export const RECIPES: Recipe[] = [
     tags: ["res", "antojo saludable"],
   },
 ];
+
+// Más de 200 recetas saludables del mundo (ver cada archivo)
+export const RECIPES: Recipe[] = [...BASE_RECIPES, ...DESAYUNOS, ...PLATOS, ...PLATOS_2, ...MERIENDAS];
 
 export const RECIPE: Record<string, Recipe> = Object.fromEntries(RECIPES.map((r) => [r.id, r]));

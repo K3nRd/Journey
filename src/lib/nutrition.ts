@@ -136,7 +136,7 @@ export function menuForDay(
   const dayGoal = kcalTarget * 0.95;
   const used = new Set<string>();
 
-  return slotsFor(count, goalOf(p)).map((slot) => {
+  const meals: PlannedMeal[] = slotsFor(count, goalOf(p)).map((slot) => {
     const pool = RECIPE_POOL[slot];
     let r = RECIPE[swaps?.[slot] ?? baseRecipeFor(weekday, slot)];
     if (!r || !recipeAllowed(r, excluded) || (used.has(r.id) && !swaps?.[slot])) {
@@ -146,11 +146,31 @@ export function menuForDay(
         RECIPE[baseRecipeFor(weekday, slot)];
     }
     used.add(r.id);
-    // Cada comida se ajusta a la parte de calorías que le toca
-    const base = recipeMacros(r).kcal || 1;
-    const scale = Math.round(Math.min(2.2, Math.max(0.5, (dayGoal * shares[slot]) / base)) * 20) / 20;
-    return { slot, recipe: r, scale, macros: recipeMacros(r, scale) };
+    return { slot, recipe: r, scale: portionScale(r, dayGoal * shares[slot]), macros: recipeMacros(r) };
   });
+
+  // Segunda pasada: si por los topes de porción el día no cuadra, se reparte la diferencia
+  for (let pass = 0; pass < 2; pass++) {
+    const total = meals.reduce((a, m) => a + recipeMacros(m.recipe, m.scale).kcal, 0);
+    if (!total || Math.abs(total - dayGoal) / dayGoal < 0.03) break;
+    const f = dayGoal / total;
+    for (const m of meals) m.scale = clampScale(m.scale * f);
+  }
+  for (const m of meals) m.macros = recipeMacros(m.recipe, m.scale);
+  return meals;
+}
+
+const clampScale = (x: number) => Math.round(Math.min(2.2, Math.max(0.5, x)) * 20) / 20;
+
+/** Porción (multiplicador) de una receta para llegar a las calorías de esa comida. */
+export function portionScale(r: Recipe, kcalForMeal: number) {
+  const base = recipeMacros(r).kcal || 1;
+  return clampScale(kcalForMeal / base);
+}
+
+/** Calorías que le tocan a una comida del día (meta diaria × su parte). */
+export function mealKcalTarget(p: Profile, kcalTarget: number, slot: MealSlot) {
+  return kcalTarget * 0.95 * sharesFor(mealsPerDay(p), goalOf(p))[slot];
 }
 
 // ── Lista de compras ──────────────────────────────────

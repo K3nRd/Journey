@@ -7,7 +7,8 @@ import { FOOD } from "@/data/foods";
 import { RECIPES } from "@/data/recipes";
 import { RECIPE_POOL } from "@/data/mealplan";
 import { goalOf, mealsPerDay, slotLabel } from "@/lib/meals";
-import { formatQty, recipeMacros, excludedFoodIds, recipeAllowed, type PlannedMeal } from "@/lib/nutrition";
+import { formatQty, recipeMacros, excludedFoodIds, recipeAllowed, mealKcalTarget, portionScale, type PlannedMeal } from "@/lib/nutrition";
+import { useTargets } from "@/lib/hooks";
 import { useApp } from "@/lib/store";
 import { Button, Sheet, cx } from "./ui";
 
@@ -106,16 +107,22 @@ function SwapSheet({ open, onClose, meal, weekday }: { open: boolean; onClose: (
   const swapMeal = useApp((s) => s.swapMeal);
   const profile = useApp((s) => s.profile);
   const favorites = useApp((s) => s.favorites);
+  const t = useTargets();
+  const goalKcal = mealKcalTarget(profile, t.kcal, meal.slot);
   const ex = excludedFoodIds(profile);
   const options = RECIPES.filter((r) => r.slots.includes(RECIPE_POOL[meal.slot]) && recipeAllowed(r, ex)).sort(
     (a, b) => Number(favorites.includes(b.id)) - Number(favorites.includes(a.id)),
   );
   return (
     <Sheet open={open} onClose={onClose} title="Cambiar comida">
-      <p className="mb-3 text-sm text-muted">Se cambia para este día de la semana. Las porciones se ajustan solas a tus calorías.</p>
+      <p className="mb-3 text-sm text-muted">
+        A esta comida le tocan unas <b className="text-fg">{Math.round(goalKcal)} kcal</b>. Elijas la que elijas, la porción se ajusta para que el
+        total del día siga en tu meta. Se cambia para este día de la semana.
+      </p>
       <div className="space-y-2">
         {options.map((r) => {
-          const m = recipeMacros(r);
+          const sc = portionScale(r, goalKcal);
+          const m = recipeMacros(r, sc);
           const current = r.id === meal.recipe.id;
           return (
             <button
@@ -136,7 +143,7 @@ function SwapSheet({ open, onClose, meal, weekday }: { open: boolean; onClose: (
                   {r.name}
                 </span>
                 <span className="text-xs text-muted">
-                  ~{Math.round(m.kcal)} kcal · {Math.round(m.protein)} g proteína · {r.minutes} min
+                  {sc !== 1 ? `Porción ×${sc} · ` : ""}≈{Math.round(m.kcal)} kcal · {Math.round(m.protein)} g proteína · {r.minutes} min
                 </span>
               </span>
             </button>

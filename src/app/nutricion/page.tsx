@@ -84,11 +84,11 @@ export default function Nutricion() {
             <div className="text-muted">grasa</div>
           </div>
         </div>
-        {day.menu[0] && day.menu[0].scale !== 1 && (
-          <p className="mt-3 text-xs text-muted">
-            Porciones ajustadas ×{day.menu[0].scale} para acercarte a tu meta. Los gramos ya están calculados.
-          </p>
-        )}
+        <p className="mt-3 text-xs leading-relaxed text-muted">
+          <b className="text-fg">{t.kcal.toLocaleString("es-DO")} kcal es tu meta, no un mínimo:</b> procura quedar a ±100 kcal. El menú suma
+          un poco menos ({Math.round(tot.kcal).toLocaleString("es-DO")}) para dejarte espacio para el café, condimentos o una fruta. La proteína sí
+          es un mínimo: al menos {t.protein} g. Si cambias una comida, las porciones se recalculan para que el total siga igual.
+        </p>
       </Card>
 
       <div className="mt-4">

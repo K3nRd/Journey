@@ -68,7 +68,7 @@ export default function Preparacion() {
       <SectionTitle>Cuánto dura en la nevera</SectionTitle>
       <Card className="space-y-1.5 text-sm text-muted">
         <p>🍚 Arroz cocido: 3–4 días (enfríalo rápido, no lo dejes fuera más de 1 hora).</p>
-        <p>🫘 Habichuelas guisadas: 4 días · se congelan hasta 2 meses.</p>
+        <p>🥘 Habichuelas guisadas: 4 días · se congelan hasta 2 meses.</p>
         <p>🍗 Pollo cocido: 3–4 días · crudo adobado congelado: 2–3 meses.</p>
         <p>🥚 Huevos duros con cáscara: 5–7 días.</p>
         <p>🍠 Víveres hervidos: 3–4 días.</p>

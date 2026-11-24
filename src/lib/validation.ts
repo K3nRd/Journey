@@ -69,6 +69,14 @@ export function validateGym(p: Profile): Errors {
   const e: Errors = {};
   if (p.gymDays.length === 0) e.gym = "Elige al menos 2 días de gimnasio.";
   else if (p.gymDays.length === 1) e.gym = "Con 1 día no se completa la rutina: elige al menos 2.";
+  // El gym tiene que caer entre que te levantas y 1 h antes de dormir
+  const wake = toMin(p.wakeTime);
+  let sleep = toMin(p.sleepTime);
+  if (sleep <= wake) sleep += 1440;
+  let g = toMin(p.gymTime);
+  if (g < wake) g += 1440;
+  if (g + p.gymDurationMin > sleep - 60)
+    e.gymTime = "Con esa hora no terminas el gym al menos 1 h antes de dormir. Ajusta la hora, la duración o tu hora de dormir.";
   return e;
 }
 

@@ -41,7 +41,7 @@ export const MERIENDAS = [
   rec("sandwich-atun-mini", "Medio sándwich de atún", "🥪", m(), 5, "Una rebanada de pan integral con atún, yogur y lechuga.",
     "pan_integral 28; atun 80; yogur_griego 30; lechuga 20; tomate 30",
     ["Mezcla el atún con el yogur y limón.", "Sírvelo sobre el pan con lechuga y tomate."], ["atún", "para llevar"]),
-  rec("edamame-like-garbanzos", "Garbanzos tostados con especias", "🫘", m(), 25, "Garbanzos crujientes al horno con pimentón y limón.",
+  rec("edamame-like-garbanzos", "Garbanzos tostados con especias", "🥘", m(), 25, "Garbanzos crujientes al horno con pimentón y limón.",
     "garbanzos 120; aceite 4; sazon 2",
     ["Seca los garbanzos, mézclalos con aceite y especias.", "Hornea a 200 °C 25 min, moviendo a la mitad."], ["vegetariano", "para llevar"], "Haz una bandeja: se guardan crujientes 4 días en un frasco."),
   rec("mango-cottage-chili", "Mango con cottage y limón", "🥭", m(), 3, "Mango en cubos con cottage, limón y una pizca de chile.",

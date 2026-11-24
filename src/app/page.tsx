@@ -225,6 +225,7 @@ export default function Dashboard() {
                 meal={m}
                 weekday={day.weekday}
                 time={item ? fmt12(item.time) : undefined}
+                title={item?.title}
                 restDay={day.session.type !== "fuerza"}
                 eaten={Boolean(item && dayChecks[item.id])}
                 onToggle={() => item && toggleItem(day.key, item, m)}

@@ -350,7 +350,7 @@ const BASE_RECIPES: Recipe[] = [
   {
     id: "overnight-oats",
     name: "Avena de nevera (overnight oats)",
-    emoji: "🫙",
+    emoji: "🥫",
     slots: ["merienda", "comida1"],
     minutes: 5,
     summary: "Avena cruda con leche y guineo picado en un frasco; se deja en la nevera desde la noche.",
@@ -518,7 +518,7 @@ const BASE_RECIPES: Recipe[] = [
   {
     id: "habichuelas-arroz-huevo",
     name: "Arroz con habichuelas, huevos y aguacate",
-    emoji: "🫘",
+    emoji: "🥘",
     slots: ["cena", "comida1"],
     minutes: 20,
     summary: "Habichuelas guisadas con auyama, arroz, dos huevos y aguacate — sin carne y alto en fibra.",

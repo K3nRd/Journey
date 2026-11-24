@@ -105,6 +105,7 @@ export default function Nutricion() {
               meal={m}
               weekday={day.weekday}
               time={item ? fmt12(item.time) : undefined}
+                title={item?.title}
               restDay={day.session.type !== "fuerza"}
               eaten={Boolean(item && checks[item.id])}
               onToggle={() => item && toggleItem(sel, item, m)}

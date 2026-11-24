@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Bell, BellOff, Download, Upload, RotateCcw, Send, Pencil, Trash2, Check, LogOut } from "lucide-react";
 import { deleteAccount, resetLocal, signOut, useAuth } from "@/lib/cloud";
-import { useApp, exportableState, DEFAULT_PROFILE } from "@/lib/store";
+import { useApp, exportableState } from "@/lib/store";
 import { buildTimeline, buildWeeklyReminders, REMINDER_KINDS } from "@/lib/schedule";
 import { dateKey, fmt12 } from "@/lib/date";
 import {
@@ -19,7 +19,7 @@ import {
   pushDiagnostics,
   type ServerStatus,
 } from "@/lib/push-client";
-import { PageHeader, Card, Button, Toggle, Segmented, SectionTitle, Badge, Field, Sheet, inputCls } from "@/components/ui";
+import { PageHeader, Card, Button, Toggle, Segmented, SectionTitle, Badge, Sheet } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 
 export default function Ajustes() {

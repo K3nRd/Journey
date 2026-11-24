@@ -26,7 +26,7 @@ const STEPS = ["Bienvenida", "Tu cuerpo", "Tu salud", "Tu horario", "Gimnasio", 
 const HABITS: { id: HabitId; label: string; desc: string }[] = [
   { id: "agua", label: "Agua al despertar", desc: "Un vaso de agua antes de cualquier otra cosa" },
   { id: "caminar", label: "Caminar todos los días", desc: "Una caminata corta en el trabajo o 30 min libres" },
-  { id: "pausas", label: "Pausas activas", desc: "Levantarte cada 2 horas si trabajas sentado" },
+  { id: "pausas", label: "Pausas activas", desc: "Levantarte cada 90 min si trabajas sentado" },
   { id: "organizar", label: "Organizar tu espacio", desc: "Tender la cama y ordenar 10 minutos" },
   { id: "desconectar", label: "Tiempo para desconectar", desc: "Un rato sin trabajo ni pantallas" },
   { id: "telefono", label: "Soltar el teléfono antes de dormir", desc: "1 hora antes de acostarte" },
@@ -296,7 +296,7 @@ export default function Onboarding() {
         {step === 4 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Gimnasio</h1>
-            <Field label="Días de gimnasio" hint="Las 5 rutinas se reparten en orden en los días que marques.">
+            <Field label="Días de gimnasio" hint="Con 2–3 días hacemos cuerpo completo, con 4 torso/pierna y con 5 o más una rutina dividida.">
               <DayPicker value={p.gymDays} onChange={(v) => setProfile({ gymDays: v })} />
               {err("gym")}
             </Field>
@@ -314,6 +314,7 @@ export default function Onboarding() {
                 </select>
               </Field>
             </div>
+            {err("gymTime")}
             <p className="-mt-2 text-xs text-muted">
               {p.gymDurationMin <= 45
                 ? "Con poco tiempo hacemos la sesión corta: solo los ejercicios principales."

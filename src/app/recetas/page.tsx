@@ -10,7 +10,8 @@ import { recipeMacros, excludedFoodIds, recipeAllowed } from "@/lib/nutrition";
 import { recipeCost, matchRecipe } from "@/lib/recipes-search";
 import { PageHeader, Chip, Card, Segmented, SectionTitle, Badge, inputCls } from "@/components/ui";
 
-type Filter = "comida1" | "merienda" | "cena" | "kcal" | "prot" | "rapido" | "barato" | "fav";
+type Filter = "comida1" | "merienda" | "cena" | "kcal" | "prot" | "rapido" | "barato" | "fav" | "veg" | "do";
+const PAGE = 30;
 
 export default function Recetas() {
   const profile = useApp((s) => s.profile);
@@ -20,8 +21,12 @@ export default function Recetas() {
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
   const [have, setHave] = useState<string[]>([]);
+  const [shown, setShown] = useState(PAGE);
   const excluded = excludedFoodIds(profile);
-  const tog = (f: Filter) => setFilters((x) => (x.includes(f) ? x.filter((y) => y !== f) : [...x, f]));
+  const tog = (f: Filter) => {
+    setShown(PAGE);
+    setFilters((x) => (x.includes(f) ? x.filter((y) => y !== f) : [...x, f]));
+  };
 
   const results = useMemo(() => {
     let list = RECIPES.filter((r) => recipeAllowed(r, excluded)).map((r) => ({
@@ -40,6 +45,8 @@ export default function Recetas() {
           if (f === "rapido" && r.minutes > 20) return false;
           if (f === "barato" && cost > 100) return false;
           if (f === "fav" && !favorites.includes(r.id)) return false;
+          if (f === "veg" && !r.tags.includes("vegetariano")) return false;
+          if (f === "do" && !r.tags.includes("dominicano")) return false;
         }
         return true;
       });
@@ -57,12 +64,12 @@ export default function Recetas() {
     return list;
   }, [q, filters, mode, have, favorites, prices, excluded]);
 
-  const googleQ = encodeURIComponent(`receta ${q || have.map((h) => FOOD[h].name).join(" ")} saludable dominicana`);
+  const googleQ = encodeURIComponent(`receta ${q || have.map((h) => FOOD[h].name).join(" ")} saludable`);
   const ingredientChoices = FOODS.filter((f) => !f.seasoning && f.id !== "sazon");
 
   return (
     <div>
-      <PageHeader title="Recetas" subtitle={`${RECIPES.length} recetas dominicanas incluidas`} back="/nutricion" />
+      <PageHeader title="Recetas" subtitle={`${RECIPES.length} recetas saludables, dominicanas y del mundo`} back="/nutricion" />
       <Segmented
         value={mode}
         onChange={setMode}
@@ -82,6 +89,7 @@ export default function Recetas() {
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
+                setShown(PAGE);
               }}
             />
           </div>
@@ -89,9 +97,11 @@ export default function Recetas() {
             {(
               [
                 ["fav", "★ Favoritas"],
-                ["comida1", "Primera comida"],
+                ["comida1", "Desayuno"],
+                ["cena", "Almuerzo y cena"],
                 ["merienda", "Merienda"],
-                ["cena", "Cena"],
+                ["do", "🇩🇴 Dominicanas"],
+                ["veg", "Vegetarianas"],
                 ["prot", "≥40 g proteína"],
                 ["kcal", "≤500 kcal"],
                 ["rapido", "≤20 min"],
@@ -118,7 +128,8 @@ export default function Recetas() {
       )}
 
       <div className="mt-4 space-y-2">
-        {results.map(({ r, m, cost, cover }) => (
+        {results.length > 0 && <p className="text-xs text-muted">{results.length} recetas</p>}
+        {results.slice(0, shown).map(({ r, m, cost, cover }) => (
           <Link key={r.id} href={`/recetas/${r.id}`} className="card flex items-center gap-3 !p-3">
             <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-surface-2 text-2xl">{r.emoji}</div>
             <div className="min-w-0 flex-1">
@@ -133,6 +144,11 @@ export default function Recetas() {
             {mode === "tengo" && <Badge tone={cover === 1 ? "good" : "neutral"}>{Math.round(cover * 100)}%</Badge>}
           </Link>
         ))}
+        {results.length > shown && (
+          <button type="button" onClick={() => setShown((n) => n + PAGE)} className="tap h-11 w-full rounded-full border border-line bg-surface-2 text-sm font-semibold">
+            Ver más ({results.length - shown} restantes)
+          </button>
+        )}
         {results.length === 0 && (mode === "buscar" || have.length > 0) && (
           <Card className="text-center text-sm text-muted">No hay recetas incluidas que coincidan. Prueba con otra palabra o busca en Google 👇</Card>
         )}

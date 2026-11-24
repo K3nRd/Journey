@@ -72,7 +72,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         id: "fibra",
-        emoji: "🫘",
+        emoji: "🥘",
         title: "Fibra",
         number: "25–29 g o más al día",
         what: "Una revisión de 185 estudios y 58 ensayos en The Lancet encontró el mayor beneficio con 25–29 g de fibra al día: 15–30 % menos mortalidad y menos enfermedad cardíaca, diabetes tipo 2 y cáncer colorrectal.",
@@ -167,7 +167,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         id: "sentado",
-        emoji: "🪑",
+        emoji: "💺",
         title: "Romper el tiempo sentado",
         number: "2–5 min cada 30–60 min",
         what: "Estudios controlados muestran que interrumpir el tiempo sentado cada 30 minutos con 2–5 minutos de caminata ligera baja el azúcar en sangre después de comer. La OMS indica que cualquier movimiento, incluso ligero, reemplazando tiempo sentado, aporta beneficios.",

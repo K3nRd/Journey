@@ -7,7 +7,7 @@ export const REMINDER_KINDS: { id: string; label: string; desc: string }[] = [
   { id: "habitos", label: "Hábitos", desc: "Despertar, agua, organizar, desconectar" },
   { id: "comidas", label: "Comidas", desc: "Cada comida de tu plan, a su hora" },
   { id: "gym", label: "Gimnasio", desc: "30 min antes de entrenar" },
-  { id: "pausas", label: "Pausas activas", desc: "Levantarte cada 2 horas mientras trabajas" },
+  { id: "pausas", label: "Pausas activas", desc: "Levantarte cada 90 min mientras trabajas" },
   { id: "caminar", label: "Caminata", desc: "Tu caminata diaria" },
   { id: "suplementos", label: "Suplementos", desc: "Creatina, pre-entreno y proteína a su hora" },
   { id: "seguimiento", label: "Seguimiento", desc: "Pesaje, cintura, fotos y revisión semanal" },
@@ -133,7 +133,10 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
   const r15 = (m: number) => Math.round(m / 15) * 15;
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
   // Desayuno: dentro de la primera hora tras despertar (y antes de entrar a trabajar)
-  const comida1 = Math.min(wake + 45, isWork ? Math.max(wake + 20, ws - 10) : wake + 60);
+  let comida1 = Math.min(wake + 45, isWork ? Math.max(wake + 20, ws - 10) : wake + 60);
+  // Gym temprano (antes o justo después del desayuno): se desayuna después de entrenar
+  const earlyGym = isGym && gym < comida1 + 60 && gym >= wake;
+  if (earlyGym) comida1 = gymEnd + 20;
   // Almuerzo: cerca del mediodía (12:00–13:30) y 3.5–5 h después del desayuno
   const almuerzo = r15(Math.max(comida1 + 210, clamp(comida1 + 240, toMin("12:00"), toMin("13:30"))));
   // Cena: la última comida idealmente 3 h antes de dormir (mínimo 2 h); los días de gym, después de entrenar
@@ -154,7 +157,14 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
       ? nightSnack
       : r15((comida1 + almuerzo) / 2)
     : null;
-  const label = (slot: MealSlot) => slotLabel(slot, count, isGym, goal);
+  // Etiquetas pre/post-entreno solo cuando de verdad lo son
+  const gymBeforeLunch = isGym && gym < almuerzo;
+  const special: Partial<Record<MealSlot, string>> = {};
+  if (earlyGym) special.comida1 = "Desayuno post-entreno";
+  else if (gymBeforeLunch && gym > comida1) special.almuerzo = "Almuerzo post-entreno";
+  if (meriendaMin !== null && isGym && meriendaMin === gym - 75) special.merienda = "Merienda pre-entreno";
+  if (isGym && !gymBeforeLunch) special.cena = "Cena post-entreno";
+  const label = (slot: MealSlot) => special[slot] ?? slotLabel(slot, count, false, goal);
 
   add({
     id: "comida1",
@@ -177,7 +187,7 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
       min: ws,
       end: fromMin(we),
       title: "Trabajo",
-      desc: p.workType === "sentado" ? "Pausa activa cada 1–2 horas." : undefined,
+      desc: p.workType === "sentado" ? "Pausa activa cada 90 min." : undefined,
       kind: "work",
       icon: "Briefcase",
       checkable: false,
@@ -396,7 +406,8 @@ export function buildTimeline(p: Profile, key: string, opts: ScheduleOptions = {
 
   if (h.desconectar) {
     const t = isWork && !isGym ? we + 30 : cena + 40;
-    if (t < sleep - 70) {
+    const duringWork = isWork && ((t >= ws && t < we) || (t + 1440 >= ws && t + 1440 < we) || (t - 1440 >= ws && t - 1440 < we));
+    if (t < sleep - 70 && !duringWork) {
       add({
         id: "desconectar",
         min: t,

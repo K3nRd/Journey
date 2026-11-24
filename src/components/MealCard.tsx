@@ -16,6 +16,7 @@ export function MealCard({
   eaten,
   onToggle,
   time,
+  title,
   restDay,
   compact,
 }: {
@@ -24,13 +25,14 @@ export function MealCard({
   eaten: boolean;
   onToggle: () => void;
   time?: string;
+  title?: string; // nombre de la comida según la rutina del día (pre/post-entreno)
   restDay?: boolean;
   compact?: boolean;
 }) {
   const [swap, setSwap] = useState(false);
   const r = meal.recipe;
   const profile = useApp((s) => s.profile);
-  const label = slotLabel(meal.slot, mealsPerDay(profile), !restDay, goalOf(profile));
+  const label = title ?? slotLabel(meal.slot, mealsPerDay(profile), !restDay, goalOf(profile));
   const mains = r.ingredients.filter((i) => !FOOD[i.food]?.seasoning || i.food === "aceite").slice(0, compact ? 4 : 8);
 
   return (

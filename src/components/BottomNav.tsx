@@ -17,7 +17,10 @@ const TABS = [
 export function BottomNav() {
   const path = usePathname();
   return (
-    <nav className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 10px)" }}>
+    <nav
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-4"
+      style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 10px)", transform: "translateZ(0)", WebkitTransform: "translateZ(0)" }}
+    >
       <div
         className="pointer-events-auto mx-auto flex max-w-md items-center gap-1 rounded-full border border-line-strong p-1.5 shadow-2xl backdrop-blur-2xl"
         style={{ background: "var(--nav-bg)" }}

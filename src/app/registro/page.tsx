@@ -6,7 +6,7 @@ import { EMPTY_OBJ, EMPTY_ARR, useApp } from "@/lib/store";
 import { useTargets } from "@/lib/hooks";
 import { addDays, dateKey, fmtDate } from "@/lib/date";
 import { EAT_OUT, PORTIONS, type QuickFood } from "@/data/extras";
-import { PageHeader, Card, Bar, Button, Sheet, Segmented, SectionTitle, Scale, Field, inputCls, cx } from "@/components/ui";
+import { PageHeader, Card, Bar, Button, Sheet, SectionTitle, Scale, Field, inputCls, cx } from "@/components/ui";
 import { TimeInput } from "@/components/forms";
 import { Scanner, type ScannedProduct } from "@/components/Scanner";
 import { toggleItem } from "@/lib/actions";

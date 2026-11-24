@@ -102,7 +102,7 @@ export function Providers({ children }: { children: ReactNode }) {
   const showNav = onboarded && auth !== "signedOut" && !["/onboarding", "/legal", "/salud", "/login"].includes(pathname);
   return (
     <>
-      <main className={showNav ? "mx-auto max-w-lg px-4 pb-28" : "mx-auto max-w-lg px-4 pb-10"}>{children}</main>
+      <main className={showNav ? "mx-auto max-w-lg overflow-x-clip px-4 pb-28" : "mx-auto max-w-lg overflow-x-clip px-4 pb-10"}>{children}</main>
       {showNav && <BottomNav />}
     </>
   );

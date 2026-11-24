@@ -45,7 +45,7 @@ export const PORTIONS: QuickFood[] = [
   { id: "p-huevo", name: "Huevo", portion: "1 unidad", kcal: 72, protein: 6, emoji: "🥚" },
   { id: "p-guineo", name: "Guineo", portion: "1 unidad", kcal: 105, protein: 1, emoji: "🍌" },
   { id: "p-leche", name: "Leche descremada", portion: "1 vaso (250 ml)", kcal: 88, protein: 9, emoji: "🥛" },
-  { id: "p-habichuelas", name: "Habichuelas", portion: "½ taza", kcal: 115, protein: 8, emoji: "🫘" },
+  { id: "p-habichuelas", name: "Habichuelas", portion: "½ taza", kcal: 115, protein: 8, emoji: "🥘" },
 ];
 
 export const DISCONNECT_IDEAS: { emoji: string; title: string; desc: string }[] = [

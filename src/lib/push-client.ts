@@ -51,6 +51,9 @@ export async function serverStatus(): Promise<ServerStatus> {
 
 const tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "America/Santo_Domingo";
 
+const IOS_REINSTALL =
+  "El iPhone no mostró el aviso de permiso. Borra el ícono de Journey, ábrela en Safari → Compartir → Añadir a pantalla de inicio (con «Abrir como app web» activado), ábrela desde el ícono nuevo y toca de nuevo «Activar recordatorios».";
+
 function withTimeout<T>(p: Promise<T>, ms: number, msg: string): Promise<T> {
   return Promise.race([p, new Promise<T>((_, rej) => setTimeout(() => rej(new Error(msg)), ms))]);
 }
@@ -93,14 +96,21 @@ export async function enablePush(
   try {
     // 1. Permiso (debe ser lo primero tras el toque, sin esperas antes)
     onStep?.("Pidiendo permiso…");
+    const before = Notification.permission;
+    const t0 = Date.now();
     const perm = await Notification.requestPermission();
-    if (perm === "denied")
+    if (perm === "denied") {
+      // Si nunca se había preguntado y la respuesta llegó al instante, el iPhone no mostró el aviso.
+      const silent = before !== "denied" && Date.now() - t0 < 600;
       return {
         ok: false,
         error: isIOS()
-          ? "Las notificaciones están bloqueadas. Ve a Ajustes del iPhone → Notificaciones → Journey → Permitir notificaciones, y vuelve a intentarlo."
+          ? silent || !isStandalone()
+            ? IOS_REINSTALL
+            : "Bloqueaste las notificaciones. Ve a Ajustes del iPhone → Notificaciones → Journey → activa «Permitir notificaciones». Si Journey no aparece ahí: " + IOS_REINSTALL
           : "Las notificaciones están bloqueadas para este sitio. Actívalas en la configuración del navegador.",
       };
+    }
     if (perm !== "granted") return { ok: false, error: "No se concedió el permiso. Toca de nuevo y elige «Permitir»." };
 
     // 2. Service worker
@@ -143,9 +153,7 @@ export async function enablePush(
     if (name === "NotAllowedError" || /permission denied/i.test(m))
       return {
         ok: false,
-        error: isIOS()
-          ? "El iPhone no permitió las notificaciones. Ve a Ajustes del iPhone → Notificaciones → Journey → activa «Permitir notificaciones», y vuelve a intentarlo."
-          : "El navegador no permitió las notificaciones. Actívalas para este sitio en la configuración del navegador.",
+        error: isIOS() ? IOS_REINSTALL : "El navegador no permitió las notificaciones. Actívalas para este sitio en la configuración del navegador.",
       };
     if (name === "AbortError" || /push service/i.test(m))
       return { ok: false, error: "No se pudo conectar con el servicio de notificaciones de Apple/Google. Revisa tu internet e inténtalo de nuevo." };

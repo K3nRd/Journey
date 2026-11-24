@@ -37,10 +37,13 @@ export function Providers({ children }: { children: ReactNode }) {
     registerSW();
   }, []);
 
-  // Preguntas iniciales
+  // Preguntas iniciales y cuestionario de salud obligatorio
+  const healthDone = useApp((s) => Boolean(s.profile.health?.disclaimerAcceptedAt));
   useEffect(() => {
-    if (hydrated && !onboarded && pathname !== "/onboarding") router.replace("/onboarding");
-  }, [hydrated, onboarded, pathname, router]);
+    if (!hydrated || pathname === "/onboarding" || pathname === "/legal") return;
+    if (!onboarded) router.replace("/onboarding");
+    else if (!healthDone && pathname !== "/salud") router.replace("/salud");
+  }, [hydrated, onboarded, healthDone, pathname, router]);
 
   useReminderSync(hydrated);
   useRemoteDone(hydrated);
@@ -54,7 +57,7 @@ export function Providers({ children }: { children: ReactNode }) {
     );
   }
 
-  const showNav = onboarded && pathname !== "/onboarding";
+  const showNav = onboarded && !["/onboarding", "/legal", "/salud"].includes(pathname);
   return (
     <>
       <main className={showNav ? "mx-auto max-w-lg px-4 pb-28" : "mx-auto max-w-lg px-4 pb-10"}>{children}</main>

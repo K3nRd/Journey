@@ -75,7 +75,7 @@ export default function Ajustes() {
   };
 
   const cloudUpload = async () => {
-    if (code.length < 8) return flash("bad", "El código debe tener al menos 8 caracteres.");
+    if (code.length < 12) return flash("bad", "El código debe tener al menos 12 caracteres.");
     s.setSyncCode(code);
     const r = await fetch("/api/sync", {
       method: "PUT",
@@ -89,7 +89,7 @@ export default function Ajustes() {
   };
 
   const cloudRestore = async () => {
-    if (code.length < 8) return flash("bad", "Escribe tu código (mínimo 8 caracteres).");
+    if (code.length < 12) return flash("bad", "Escribe tu código (mínimo 12 caracteres).");
     const r = await fetch("/api/sync", { headers: { "x-sync-code": code } }).catch(() => null);
     if (!r?.ok) return flash("bad", (await r?.json().catch(() => null))?.error ?? "No se pudo conectar.");
     const { data } = await r.json();
@@ -240,10 +240,10 @@ export default function Ajustes() {
       <SectionTitle>Copia en la nube</SectionTitle>
       <Card className="space-y-3">
         <p className="text-sm text-muted">
-          Elige un código secreto (mínimo 8 caracteres). Con él recuperas tus datos si cambias de teléfono. Las fotos no se suben.
+          Elige un código secreto largo (mínimo 12 caracteres, mejor una frase). Con él recuperas tus datos si cambias de teléfono. Las fotos no se suben.
         </p>
         <Field label="Código de sincronización">
-          <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value.trim())} placeholder="Ej.: mi-plan-2026-xyz" autoComplete="off" />
+          <input className={inputCls} value={code} onChange={(e) => setCode(e.target.value.trim())} placeholder="Ej.: mango-verde-gimnasio-2026" autoComplete="off" />
         </Field>
         <div className="grid grid-cols-2 gap-2">
           <Button variant="secondary" onClick={cloudUpload} disabled={!status?.sync}>
@@ -293,8 +293,16 @@ export default function Ajustes() {
       <Card className="space-y-1 text-xs text-muted">
         <p>Fotos de ejercicios: free-exercise-db (dominio público).</p>
         <p>Productos escaneados: Open Food Facts (ODbL).</p>
-        <p>Recetas de internet: TheMealDB.</p>
         <p>Valores nutricionales aproximados basados en USDA FoodData Central. Esta app no sustituye el consejo médico.</p>
+        <p>
+          <Link href="/legal" className="text-accent-text underline">
+            Términos, privacidad y aviso médico
+          </Link>
+          {" · "}
+          <Link href="/salud" className="text-accent-text underline">
+            Cuestionario de salud
+          </Link>
+        </p>
         <p className="pt-1">Hora de dormir actual: {fmt12(s.profile.sleepTime)} · Despertar: {fmt12(s.profile.wakeTime)}</p>
       </Card>
 

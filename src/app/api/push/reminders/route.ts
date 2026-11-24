@@ -1,15 +1,21 @@
 import { getSupabase, notConfigured } from "@/lib/server/supabase";
+import { bad, cleanReminders, isId, rateLimit, readJson } from "@/lib/server/guard";
 
 export async function POST(req: Request) {
   const db = getSupabase();
   if (!db) return notConfigured();
-  const { deviceId, timezone, reminders } = await req.json();
-  if (!deviceId || !Array.isArray(reminders)) return Response.json({ error: "Datos incompletos" }, { status: 400 });
+  const body = await readJson<{ deviceId?: unknown; timezone?: unknown; reminders?: unknown }>(req);
+  if (!body || !isId(body.deviceId)) return bad("Datos incompletos");
+  const limited = await rateLimit("reminders", body.deviceId, 60, 3600);
+  if (limited) return limited;
+  const reminders = cleanReminders(body.reminders);
+  if (!reminders) return bad("Recordatorios no válidos");
+  const timezone = typeof body.timezone === "string" && body.timezone.length < 60 ? body.timezone : undefined;
   const { data, error } = await db
     .from("devices")
-    .update({ reminders, timezone, updated_at: new Date().toISOString() })
-    .eq("id", deviceId)
+    .update({ reminders, ...(timezone ? { timezone } : {}), updated_at: new Date().toISOString() })
+    .eq("id", body.deviceId)
     .select("id");
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return bad("No se pudo guardar", 500);
   return Response.json({ ok: true, registered: (data?.length ?? 0) > 0 });
 }

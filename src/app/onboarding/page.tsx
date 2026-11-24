@@ -13,10 +13,12 @@ import { dateKey, fmt12, DAY_NAMES, addDays } from "@/lib/date";
 import { Icon } from "@/components/Icon";
 import { JourneyPath } from "@/components/JourneyPath";
 import { Logo } from "@/components/Logo";
+import { HealthStep } from "@/components/HealthStep";
+import { validateBody, validateGym, validateHealth, validateSchedule, bmi, minHealthyWeightLb, type Errors } from "@/lib/validation";
 import { enablePush, isAndroid, isIOS, isPushSupported, isStandalone, serverStatus } from "@/lib/push-client";
 import type { HabitId } from "@/lib/types";
 
-const STEPS = ["Bienvenida", "Tu cuerpo", "Tu horario", "Gimnasio", "Alimentación", "Hábitos", "Recordatorios", "Resumen"];
+const STEPS = ["Bienvenida", "Tu cuerpo", "Tu salud", "Tu horario", "Gimnasio", "Alimentación", "Hábitos", "Recordatorios", "Resumen"];
 
 const HABITS: { id: HabitId; label: string; desc: string }[] = [
   { id: "agua", label: "Agua al despertar", desc: "Un vaso de agua antes de cualquier otra cosa" },
@@ -46,15 +48,53 @@ export default function Onboarding() {
     window.scrollTo({ top: 0 });
   }, [step]);
 
-  const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
-  const prev = () => setStep((s) => Math.max(0, s - 1));
+  const [tried, setTried] = useState(false);
+  const errors: Errors =
+    step === 0
+      ? p.name.trim()
+        ? {}
+        : { name: "Escribe tu nombre." }
+      : step === 1
+        ? validateBody(p)
+        : step === 2
+          ? validateHealth(p)
+          : step === 3
+            ? validateSchedule(p)
+            : step === 4
+              ? validateGym(p)
+              : {};
+  const err = (k: string) =>
+    tried && errors[k] ? (
+      <p data-error className="mt-1.5 text-[13px] font-medium text-bad">
+        {errors[k]}
+      </p>
+    ) : null;
+
+  const next = () => {
+    if (Object.keys(errors).length) {
+      setTried(true);
+      setTimeout(() => document.querySelector("[data-error]")?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+      return;
+    }
+    setTried(false);
+    setStep((s) => Math.min(STEPS.length - 1, s + 1));
+  };
+  const prev = () => {
+    setTried(false);
+    setStep((s) => Math.max(0, s - 1));
+  };
 
   const done = () => {
+    const bodyErr = Object.keys(validateBody(p)).length > 0;
+    if (bodyErr || Object.keys(validateHealth(p)).length) {
+      setStep(bodyErr ? 1 : 2);
+      setTried(true);
+      return;
+    }
     finish();
     router.replace("/");
   };
 
-  const canNext = step !== 0 || p.name.trim().length > 0;
 
   return (
     <div className="safe-top flex min-h-dvh flex-col pt-4">
@@ -90,10 +130,10 @@ export default function Onboarding() {
               <Logo />
             </div>
             <div className="card grad-soft p-5">
-              <JourneyPath start={p.startWeightLb} goal={p.goalWeightLb} current={p.startWeightLb + 0.0001} />
+              <JourneyPath start={200} goal={170} current={186} />
             </div>
             <h1 className="font-display text-[34px] font-bold leading-[1.05]">
-              Tu camino de <span className="grad-text">{p.startWeightLb} a {p.goalWeightLb}</span> empieza hoy.
+              Tu transformación, <span className="grad-text">paso a paso.</span>
             </h1>
             <p className="text-muted">
               Te haré unas preguntas para armar tu rutina diaria, tu entrenamiento y tu menú. Todo se puede cambiar después en
@@ -107,6 +147,7 @@ export default function Onboarding() {
                 placeholder="Tu nombre"
                 onChange={(e) => setProfile({ name: e.target.value })}
               />
+              {err("name")}
             </Field>
           </div>
         )}
@@ -114,13 +155,14 @@ export default function Onboarding() {
         {step === 1 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Tu cuerpo</h1>
-            <p className="text-sm text-muted">Ya vienen tus datos. Confirma o corrige.</p>
+            <p className="text-sm text-muted">Con esto calculamos tus calorías, tu proteína y una meta saludable.</p>
             <Field label="Sexo">
               <Segmented value={p.sex} onChange={(v) => setProfile({ sex: v })} options={[{ value: "m", label: "Masculino" }, { value: "f", label: "Femenino" }]} />
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Edad">
                 <NumInput value={p.age} onChange={(v) => setProfile({ age: v ?? 0 })} suffix="años" />
+                {err("age")}
               </Field>
               <Field label="Nivel">
                 <select className={inputCls} value={p.level} onChange={(e) => setProfile({ level: e.target.value as typeof p.level })}>
@@ -132,22 +174,44 @@ export default function Onboarding() {
             </div>
             <Field label="Estatura">
               <HeightInput cm={p.heightCm} onChange={(cm) => setProfile({ heightCm: cm })} />
+              {err("height")}
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Peso actual">
                 <NumInput value={p.startWeightLb} onChange={(v) => setProfile({ startWeightLb: v ?? 0 })} suffix="lb" step={0.1} />
+                {err("weight")}
               </Field>
               <Field label="Peso meta">
                 <NumInput value={p.goalWeightLb} onChange={(v) => setProfile({ goalWeightLb: v ?? 0 })} suffix="lb" step={0.1} />
               </Field>
             </div>
+            {err("goal")}
+            {p.heightCm >= 120 && p.startWeightLb >= 80 && (
+              <p className="-mt-1 text-xs text-muted">
+                IMC actual {bmi(p.startWeightLb, p.heightCm).toFixed(1)} · meta mínima saludable para tu estatura: {minHealthyWeightLb(p.heightCm)} lb.
+                Lo recomendable es bajar entre 0.5 y 1 lb por semana.
+              </p>
+            )}
             <Field label="Medida de cintura (opcional)" hint="A la altura del ombligo, relajado.">
               <NumInput value={p.startWaistIn} onChange={(v) => setProfile({ startWaistIn: v })} suffix="pulg" step={0.25} placeholder="Ej. 40" />
+              {err("waist")}
+            </Field>
+            <Field label="¿Vienes de una pausa de entrenamiento?">
+              <Segmented
+                value={p.returningFromBreak ? "si" : "no"}
+                onChange={(v) => setProfile({ returningFromBreak: v === "si" })}
+                options={[
+                  { value: "no", label: "No / empiezo" },
+                  { value: "si", label: "Sí, retomo" },
+                ]}
+              />
             </Field>
           </div>
         )}
 
-        {step === 2 && (
+        {step === 2 && <HealthStep showErrors={tried} />}
+
+        {step === 3 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Tu horario</h1>
             <div className="grid grid-cols-2 gap-3">
@@ -159,6 +223,7 @@ export default function Onboarding() {
               </Field>
             </div>
             <SleepHint wake={p.wakeTime} sleep={p.sleepTime} />
+            {err("sleep")}
             <Field label="Días que trabajo">
               <DayPicker value={p.workDays} onChange={(v) => setProfile({ workDays: v })} />
             </Field>
@@ -170,6 +235,7 @@ export default function Onboarding() {
                 <TimeInput value={p.workEnd} onChange={(v) => setProfile({ workEnd: v })} />
               </Field>
             </div>
+            {err("work")}
             <Field label="En el trabajo estoy…">
               <Segmented
                 value={p.workType}
@@ -184,11 +250,12 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 4 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Gimnasio</h1>
             <Field label="Días de gimnasio" hint="Las 5 rutinas se reparten en orden en los días que marques.">
               <DayPicker value={p.gymDays} onChange={(v) => setProfile({ gymDays: v })} />
+              {err("gym")}
             </Field>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Llego al gym a las">
@@ -213,12 +280,13 @@ export default function Onboarding() {
               />
             </Card>
             <Card className="text-sm text-muted">
-              Las primeras <b className="text-fg">2 semanas son de adaptación</b>: una serie menos y pesos cómodos, porque vienes de 4 meses sin entrenar.
+              Las primeras <b className="text-fg">2 semanas son de adaptación</b>: una serie menos y pesos cómodos,{" "}
+              {p.returningFromBreak ? "para que tu cuerpo se readapte después de la pausa." : "para aprender la técnica y que tu cuerpo se acostumbre."}
             </Card>
           </div>
         )}
 
-        {step === 4 && (
+        {step === 5 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Alimentación</h1>
             <Field label="¿Cuántas veces comes al día ahora?">
@@ -261,7 +329,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 5 && (
+        {step === 6 && (
           <div className="space-y-4">
             <h1 className="font-display text-[28px] font-bold leading-tight">Tus hábitos</h1>
             <p className="text-sm text-muted">Activa lo que quieras en tu checklist diario.</p>
@@ -287,7 +355,7 @@ export default function Onboarding() {
           </div>
         )}
 
-        {step === 6 && (
+        {step === 7 && (
           <RemindersStep
             onEnable={async () => {
               const r = await enablePush(deviceId, buildWeeklyReminders(p, overrides));
@@ -301,13 +369,13 @@ export default function Onboarding() {
           />
         )}
 
-        {step === 7 && <Summary overrides={overrides} setOverride={setOverride} />}
+        {step === 8 && <Summary overrides={overrides} setOverride={setOverride} />}
       </div>
 
       <div className="safe-bottom sticky bottom-0 -mx-4 bg-bg/90 px-4 pt-3 backdrop-blur">
         {step < STEPS.length - 1 ? (
-          <Button size="lg" className="w-full" onClick={next} disabled={!canNext}>
-            {step === 6 && !pushEnabled ? "Ahora no, continuar" : "Continuar"} <ArrowRight className="h-5 w-5" />
+          <Button size="lg" className="w-full" onClick={next}>
+            {step === 7 && !pushEnabled ? "Ahora no, continuar" : "Continuar"} <ArrowRight className="h-5 w-5" />
           </Button>
         ) : (
           <Button size="lg" className="w-full" onClick={done}>

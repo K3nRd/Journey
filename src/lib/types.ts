@@ -50,6 +50,16 @@ export interface Profile {
   timezone: string;
   startDate: string; // YYYY-MM-DD
   calorieTarget?: number; // ajuste manual / automático
+
+  returningFromBreak?: boolean; // vuelve tras una pausa de entrenamiento
+  health?: HealthScreening;
+}
+
+export interface HealthScreening {
+  answers: Record<string, boolean>;
+  flagged: boolean; // alguna respuesta "sí"
+  doctorAck: boolean; // confirmó consultar con un médico
+  disclaimerAcceptedAt: string; // ISO
 }
 
 export interface TimelineItem {

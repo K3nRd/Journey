@@ -1,42 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { Globe, Search, Star, ExternalLink, Loader2, Languages, AlertTriangle, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Search, Star } from "lucide-react";
 import { RECIPES } from "@/data/recipes";
 import { FOOD, FOODS } from "@/data/foods";
 import { useApp } from "@/lib/store";
 import { recipeMacros, excludedFoodIds, recipeAllowed } from "@/lib/nutrition";
-import { recipeCost, matchRecipe, toEnglish, externalWarnings } from "@/lib/recipes-search";
-import { PageHeader, Chip, Card, Button, Segmented, Sheet, SectionTitle, Badge, inputCls, cx } from "@/components/ui";
+import { recipeCost, matchRecipe } from "@/lib/recipes-search";
+import { PageHeader, Chip, Card, Segmented, SectionTitle, Badge, inputCls } from "@/components/ui";
 
 type Filter = "comida1" | "merienda" | "cena" | "kcal" | "prot" | "rapido" | "barato" | "fav";
-
-interface MealDBMeal {
-  idMeal: string;
-  strMeal: string;
-  strMealThumb?: string;
-  strCategory?: string;
-  strArea?: string;
-  strInstructions?: string;
-  strSource?: string;
-  strYoutube?: string;
-  [k: string]: string | undefined;
-}
 
 export default function Recetas() {
   const profile = useApp((s) => s.profile);
   const favorites = useApp((s) => s.favorites);
   const prices = useApp((s) => s.prices);
-  const saved = useApp((s) => s.savedExternal);
-  const removeExternal = useApp((s) => s.removeExternal);
   const [mode, setMode] = useState<"buscar" | "tengo">("buscar");
   const [q, setQ] = useState("");
   const [filters, setFilters] = useState<Filter[]>([]);
   const [have, setHave] = useState<string[]>([]);
-  const [web, setWeb] = useState<MealDBMeal[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState<string | null>(null);
   const excluded = excludedFoodIds(profile);
   const tog = (f: Filter) => setFilters((x) => (x.includes(f) ? x.filter((y) => y !== f) : [...x, f]));
 
@@ -74,24 +57,6 @@ export default function Recetas() {
     return list;
   }, [q, filters, mode, have, favorites, prices, excluded]);
 
-  const searchWeb = async () => {
-    const term = toEnglish(q || (mode === "tengo" && have[0] ? FOOD[have[0]].name : "chicken"));
-    setLoading(true);
-    try {
-      const r = await fetch(`/api/mealdb?q=${encodeURIComponent(term)}`);
-      const j = await r.json();
-      let meals: MealDBMeal[] = j.meals ?? [];
-      if (!meals.length) {
-        const r2 = await fetch(`/api/mealdb?i=${encodeURIComponent(term.replace(/ /g, "_"))}`);
-        meals = (await r2.json()).meals ?? [];
-      }
-      setWeb(meals.slice(0, 20));
-    } catch {
-      setWeb([]);
-    }
-    setLoading(false);
-  };
-
   const googleQ = encodeURIComponent(`receta ${q || have.map((h) => FOOD[h].name).join(" ")} saludable dominicana`);
   const ingredientChoices = FOODS.filter((f) => !f.seasoning && f.id !== "sazon");
 
@@ -117,7 +82,6 @@ export default function Recetas() {
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
-                setWeb(null);
               }}
             />
           </div>
@@ -170,147 +134,21 @@ export default function Recetas() {
           </Link>
         ))}
         {results.length === 0 && (mode === "buscar" || have.length > 0) && (
-          <Card className="text-center text-sm text-muted">No hay recetas incluidas que coincidan. Prueba en internet 👇</Card>
+          <Card className="text-center text-sm text-muted">No hay recetas incluidas que coincidan. Prueba con otra palabra o busca en Google 👇</Card>
         )}
       </div>
 
-      <SectionTitle>Buscar en internet (gratis)</SectionTitle>
-      <div className="grid grid-cols-2 gap-2">
-        <Button variant="secondary" onClick={searchWeb} disabled={loading}>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />} TheMealDB
-        </Button>
-        <a href={`https://www.google.com/search?q=${googleQ}`} target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-line bg-surface-2 text-sm">
-          <Search className="h-4 w-4" /> Google
-        </a>
-      </div>
-      <p className="mt-1.5 text-xs text-muted">TheMealDB tiene miles de recetas en inglés (pocas caribeñas). Te avisamos si llevan algo que no comes.</p>
-
-      {web && (
-        <div className="mt-3 space-y-2">
-          {web.length === 0 && <Card className="text-sm text-muted">Sin resultados para «{toEnglish(q)}». Prueba otra palabra (pollo, res, avena…).</Card>}
-          {web.map((m) => (
-            <button key={m.idMeal} onClick={() => setOpen(m.idMeal)} className="card flex w-full items-center gap-3 !p-2.5 text-left">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {m.strMealThumb && <img src={`${m.strMealThumb}/preview`} alt="" className="h-14 w-14 rounded-xl object-cover" />}
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold">{m.strMeal}</div>
-                <div className="text-xs text-muted">{[m.strArea, m.strCategory].filter(Boolean).join(" · ") || "Ver receta"}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {saved.length > 0 && (
-        <>
-          <SectionTitle>Guardadas de internet</SectionTitle>
-          <div className="space-y-2">
-            {saved.map((s) => (
-              <div key={s.id} className="card flex items-center gap-3 !p-2.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {s.thumb && <img src={`${s.thumb}/preview`} alt="" className="h-12 w-12 rounded-lg object-cover" />}
-                <button className="min-w-0 flex-1 text-left text-sm font-semibold" onClick={() => setOpen(s.id)}>
-                  {s.name}
-                </button>
-                <button onClick={() => removeExternal(s.id)} className="grid h-9 w-9 place-items-center text-muted" aria-label="Quitar">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
-      <MealDBSheet id={open} onClose={() => setOpen(null)} />
+      <SectionTitle>¿No encuentras lo que buscas?</SectionTitle>
+      <a
+        href={`https://www.google.com/search?q=${googleQ}`}
+        target="_blank"
+        rel="noreferrer"
+        className="tap flex h-12 items-center justify-center gap-2 rounded-full border border-line bg-surface-2 text-sm font-medium"
+      >
+        <Search className="h-4 w-4" /> Buscar recetas en Google
+      </a>
+      <p className="mt-2 text-xs text-muted">Calcula las porciones de recetas de internet con «Registro → Con la mano».</p>
     </div>
   );
 }
 
-function MealDBSheet({ id, onClose }: { id: string | null; onClose: () => void }) {
-  const [meal, setMeal] = useState<MealDBMeal | null>(null);
-  const profile = useApp((s) => s.profile);
-  const saved = useApp((s) => s.savedExternal);
-  const saveExternal = useApp((s) => s.saveExternal);
-  const removeExternal = useApp((s) => s.removeExternal);
-
-  useEffect(() => {
-    if (!id) return;
-    let alive = true;
-    fetch(`/api/mealdb?id=${id}`)
-      .then((r) => r.json())
-      .then((j) => alive && setMeal(j.meals?.[0] ?? null))
-      .catch(() => alive && setMeal(null));
-    return () => {
-      alive = false;
-      setMeal(null);
-    };
-  }, [id]);
-
-  const ingredients: string[] = [];
-  if (meal)
-    for (let i = 1; i <= 20; i++) {
-      const ing = meal[`strIngredient${i}`]?.trim();
-      if (ing) ingredients.push(`${meal[`strMeasure${i}`]?.trim() ?? ""} ${ing}`.trim());
-    }
-  const warnings = meal ? externalWarnings(ingredients, profile.excludedFoods) : [];
-  const isSaved = saved.some((s) => s.id === id);
-  const translate = meal
-    ? `https://translate.google.com/?sl=en&tl=es&op=translate&text=${encodeURIComponent(
-        `${meal.strMeal}\n\n${ingredients.join("\n")}\n\n${meal.strInstructions ?? ""}`.slice(0, 4500),
-      )}`
-    : "#";
-
-  return (
-    <Sheet open={Boolean(id)} onClose={onClose} title={meal?.strMeal ?? "Cargando…"}>
-      {!meal ? (
-        <div className="grid h-40 place-items-center">
-          <Loader2 className="h-6 w-6 animate-spin text-muted" />
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          {meal.strMealThumb && <img src={meal.strMealThumb} alt="" className="aspect-video w-full rounded-2xl object-cover" />}
-          {warnings.length > 0 && (
-            <div className="flex items-center gap-2 rounded-xl bg-warn/15 p-3 text-sm text-warn">
-              <AlertTriangle className="h-4 w-4" /> {warnings.join(" · ")}
-            </div>
-          )}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant={isSaved ? "primary" : "secondary"}
-              onClick={() =>
-                isSaved
-                  ? removeExternal(meal.idMeal)
-                  : saveExternal({ id: meal.idMeal, name: meal.strMeal, thumb: meal.strMealThumb, source: "mealdb", url: meal.strSource })
-              }
-            >
-              <Star className={cx("h-4 w-4", isSaved && "fill-current")} /> {isSaved ? "Guardada" : "Guardar"}
-            </Button>
-            <a href={translate} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-sm">
-              <Languages className="h-4 w-4" /> Traducir
-            </a>
-            {meal.strYoutube && (
-              <a href={meal.strYoutube} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-surface-2 px-3 text-sm">
-                <ExternalLink className="h-4 w-4" /> Video
-              </a>
-            )}
-          </div>
-          <div>
-            <h4 className="mb-1 text-sm font-semibold">Ingredientes</h4>
-            <ul className="grid grid-cols-1 gap-1 text-sm text-fg/90">
-              {ingredients.map((i) => (
-                <li key={i}>• {i}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="mb-1 text-sm font-semibold">Preparación (inglés)</h4>
-            <p className="whitespace-pre-line text-sm text-fg/90">{meal.strInstructions}</p>
-          </div>
-          <p className="text-xs text-muted">Las calorías de recetas de internet no están calculadas. Usa la porción con la mano en Registro.</p>
-        </div>
-      )}
-    </Sheet>
-  );
-}

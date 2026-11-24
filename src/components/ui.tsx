@@ -80,6 +80,12 @@ export function PageHeader({
         {back && (
           <Link
             href={typeof back === "string" ? back : "/"}
+            onClick={(e) => {
+              if (back === true && window.history.length > 1) {
+                e.preventDefault();
+                window.history.back();
+              }
+            }}
             className="tap grid h-10 w-10 shrink-0 place-items-center rounded-full border border-line bg-surface"
             aria-label="Volver"
           >

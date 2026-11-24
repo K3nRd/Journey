@@ -14,15 +14,16 @@ import type {
 import { dateKey, uid } from "./date";
 import type { Entry } from "./progress";
 
+// Perfil vacío: cada persona lo completa en las preguntas iniciales.
 export const DEFAULT_PROFILE: Profile = {
   name: "",
   sex: "m",
-  age: 28,
-  heightCm: 173,
-  startWeightLb: 210,
-  goalWeightLb: 180,
+  age: 0,
+  heightCm: 0,
+  startWeightLb: 0,
+  goalWeightLb: 0,
   startWaistIn: undefined,
-  level: "intermedio",
+  level: "principiante",
   wakeTime: "06:30",
   sleepTime: "22:30",
   workDays: [1, 2, 3, 4, 5],
@@ -35,8 +36,8 @@ export const DEFAULT_PROFILE: Profile = {
   saturdayCardio: true,
   mealsBefore: 2,
   budgetWeekly: 2500,
-  excludedFoods: ["pescado", "berenjena"],
-  pantry: ["arroz", "aceite", "sazon"],
+  excludedFoods: [],
+  pantry: ["aceite", "sazon"],
   habits: {
     agua: true,
     caminar: true,

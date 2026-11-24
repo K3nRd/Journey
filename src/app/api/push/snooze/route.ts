@@ -1,17 +1,24 @@
 import { getSupabase, notConfigured } from "@/lib/server/supabase";
+import { bad, clip, isId, isItem, rateLimit, readJson } from "@/lib/server/guard";
 
 export async function POST(req: Request) {
   const db = getSupabase();
   if (!db) return notConfigured();
-  const { deviceId, itemId, title, body, url, minutes = 15 } = await req.json();
-  if (!deviceId || !itemId) return Response.json({ error: "Datos incompletos" }, { status: 400 });
-  const due = new Date(Date.now() + Math.min(180, Math.max(1, Number(minutes))) * 60000);
+  const body = await readJson<{ deviceId?: unknown; itemId?: unknown; title?: unknown; body?: unknown; url?: unknown; minutes?: unknown }>(req);
+  if (!body || !isId(body.deviceId) || !isItem(body.itemId)) return bad("Datos incompletos");
+  const limited = await rateLimit("snooze", body.deviceId, 30, 3600);
+  if (limited) return limited;
+  const { data: device } = await db.from("devices").select("id").eq("id", body.deviceId).maybeSingle();
+  if (!device) return bad("Este teléfono no está registrado", 404);
+  const minutes = Math.min(180, Math.max(1, Number(body.minutes) || 15));
+  const due = new Date(Date.now() + minutes * 60000);
+  const url = clip(body.url, 120);
   await db.from("snoozes").insert({
-    device_id: deviceId,
-    item_id: itemId,
-    title: String(title ?? "Recordatorio").slice(0, 120),
-    body: String(body ?? "").slice(0, 300),
-    url: String(url ?? "/").slice(0, 200),
+    device_id: body.deviceId,
+    item_id: body.itemId,
+    title: clip(body.title || "Recordatorio", 80),
+    body: clip(body.body, 160),
+    url: url.startsWith("/") && !url.startsWith("//") ? url : "/",
     due_at: due.toISOString(),
   });
   return Response.json({ ok: true, due: due.toISOString() });

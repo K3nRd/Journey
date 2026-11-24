@@ -54,7 +54,7 @@ export function NumInput({
       <input
         type="number"
         inputMode="decimal"
-        value={value ?? ""}
+        value={value ? value : ""}
         step={step}
         min={min}
         max={max}
@@ -68,14 +68,14 @@ export function NumInput({
 }
 
 export function HeightInput({ cm, onChange }: { cm: number; onChange: (cm: number) => void }) {
-  const totalIn = cm / 2.54;
+  const totalIn = Math.round(cm / 2.54);
   const ft = Math.floor(totalIn / 12);
-  const inch = Math.round(totalIn - ft * 12);
+  const inch = totalIn - ft * 12;
   const set = (f: number, i: number) => onChange(Math.round((f * 12 + i) * 2.54));
   return (
     <div className="grid grid-cols-2 gap-2">
-      <NumInput value={ft} onChange={(v) => set(v ?? 0, inch)} suffix="pies" />
-      <NumInput value={inch} onChange={(v) => set(ft, v ?? 0)} suffix="pulg" />
+      <NumInput value={ft} onChange={(v) => set(v ?? 0, inch)} suffix="pies" max={7} />
+      <NumInput value={cm ? inch : undefined} onChange={(v) => set(ft, Math.min(11, v ?? 0))} suffix="pulg" max={11} placeholder="0" />
     </div>
   );
 }
